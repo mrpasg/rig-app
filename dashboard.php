@@ -1,7 +1,24 @@
 <?php
 include "config.php";
 
-/* SUMMARY DATA */
+/* DATE FILTER */
+
+$where="";
+
+if(isset($_GET['range'])){
+
+if($_GET['range']=="today")
+$where="WHERE date = CURDATE()";
+
+if($_GET['range']=="week")
+$where="WHERE YEARWEEK(date)=YEARWEEK(CURDATE())";
+
+if($_GET['range']=="month")
+$where="WHERE MONTH(date)=MONTH(CURDATE())";
+
+}
+
+/* SUMMARY */
 
 $summary = $conn->query("
 SELECT
@@ -12,51 +29,50 @@ COALESCE(SUM(ilm_hours),0) AS ilm,
 COALESCE(SUM(zero_rate_hours),0) AS zero_rate,
 COUNT(DISTINCT rig) AS rigs
 FROM rig_daily_log
+$where
 ")->fetch_assoc();
 
-$rigs = $summary['rigs'];
-$operating = $summary['operating'];
-$standby = $summary['standby'];
-$breakdown = $summary['breakdown'];
-$ilm = $summary['ilm'];
-$zero = $summary['zero_rate'];
+$rigs=$summary['rigs'];
+$operating=$summary['operating'];
+$standby=$summary['standby'];
+$breakdown=$summary['breakdown'];
+$ilm=$summary['ilm'];
+$zero=$summary['zero_rate'];
 
-$efficiency = ($rigs>0) ? ($operating/($rigs*24))*100 : 0;
+$efficiency=($rigs>0)?($operating/($rigs*24))*100:0;
 
+/* RIG STATUS */
 
-/* RIG STATUS BOARD (latest status per rig) */
-
-$status = $conn->query("
+$status=$conn->query("
 SELECT r1.rig,r1.status
 FROM rig_daily_log r1
 INNER JOIN
 (
-SELECT rig, MAX(date) maxdate
+SELECT rig,MAX(date) maxdate
 FROM rig_daily_log
 GROUP BY rig
 ) r2
 ON r1.rig=r2.rig AND r1.date=r2.maxdate
 ");
 
+/* ALERTS */
 
-/* DOWNTIME ALERTS */
-
-$alerts = $conn->query("
-SELECT rig,zero_rate_hours,reason,date
+$alerts=$conn->query("
+SELECT rig,zero_rate_hours,date
 FROM rig_daily_log
 WHERE zero_rate_hours>0
 ORDER BY date DESC
 LIMIT 5
 ");
 
+/* PERFORMANCE TREND */
 
-/* PERFORMANCE CHART */
-
-$perf = $conn->query("
+$perf=$conn->query("
 SELECT DATE(date) d,
 SUM(operating_hours) operating,
 SUM(zero_rate_hours) zero_rate
 FROM rig_daily_log
+$where
 GROUP BY d
 ORDER BY d
 ");
@@ -70,6 +86,24 @@ $dates[]=$r['d'];
 $oper[]=$r['operating'];
 $zero_arr[]=$r['zero_rate'];
 }
+
+/* RIG PERFORMANCE */
+
+$rigPerf=$conn->query("
+SELECT rig,SUM(operating_hours) total_operating
+FROM rig_daily_log
+$where
+GROUP BY rig
+");
+
+$rigNames=[];
+$rigHours=[];
+
+while($row=$rigPerf->fetch_assoc()){
+$rigNames[]=$row['rig'];
+$rigHours[]=$row['total_operating'];
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -117,13 +151,23 @@ margin-bottom:20px;
 <a href="add_entry.php" class="btn btn-primary btn-sm">Add Entry</a>
 <a href="report_daily.php" class="btn btn-outline-primary btn-sm">Daily Report</a>
 <a href="report_monthly.php" class="btn btn-outline-primary btn-sm">Monthly Report</a>
-<a href="alerts.php" class="btn btn-danger btn-sm">Alerts</a>
 
 <hr>
 
-<div class="row">
+<form method="GET" class="mb-3">
 
-<!-- STATUS BOARD -->
+<select name="range" onchange="this.form.submit()" class="form-select w-25">
+
+<option value="">All Data</option>
+<option value="today">Today</option>
+<option value="week">This Week</option>
+<option value="month">This Month</option>
+
+</select>
+
+</form>
+
+<div class="row">
 
 <div class="col-md-4">
 
@@ -152,6 +196,7 @@ echo "<tr>
 <td>{$row['rig']}</td>
 <td><span class='$cls'>{$row['status']}</span></td>
 </tr>";
+
 }
 
 ?>
@@ -161,9 +206,6 @@ echo "<tr>
 </div>
 
 </div>
-
-
-<!-- EFFICIENCY GAUGE -->
 
 <div class="col-md-4">
 
@@ -178,9 +220,6 @@ echo "<tr>
 </div>
 
 </div>
-
-
-<!-- ALERTS -->
 
 <div class="col-md-4">
 
@@ -205,6 +244,7 @@ echo "<tr>
 <td style='color:red'>{$row['zero_rate_hours']}</td>
 <td>{$row['date']}</td>
 </tr>";
+
 }
 
 ?>
@@ -217,9 +257,6 @@ echo "<tr>
 
 </div>
 
-
-<!-- PERFORMANCE CHART -->
-
 <div class="card-box">
 
 <h5>Operational Performance</h5>
@@ -228,12 +265,17 @@ echo "<tr>
 
 </div>
 
+<div class="card-box">
+
+<h5>Rig Performance Comparison</h5>
+
+<canvas id="rigChart"></canvas>
+
 </div>
 
+</div>
 
 <script>
-
-/* EFFICIENCY GAUGE */
 
 new Chart(document.getElementById('effGauge'),{
 
@@ -253,9 +295,6 @@ plugins:{legend:{display:false}}
 }
 
 });
-
-
-/* PERFORMANCE TREND */
 
 new Chart(document.getElementById('perfChart'),{
 
@@ -277,6 +316,21 @@ borderColor:'#dc3545',
 fill:false
 }
 ]
+}
+
+});
+
+new Chart(document.getElementById('rigChart'),{
+
+type:'bar',
+
+data:{
+labels: <?php echo json_encode($rigNames); ?>,
+datasets:[{
+label:'Operating Hours',
+data: <?php echo json_encode($rigHours); ?>,
+backgroundColor:'#007bff'
+}]
 }
 
 });
