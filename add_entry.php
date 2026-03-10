@@ -7,7 +7,7 @@ include "config.php";
 
 <head>
 
-<title>Add Rig Entry</title>
+<title>Rig Daily Entry</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -21,8 +21,21 @@ font-family:Arial;
 .form-card{
 background:white;
 padding:30px;
-border-radius:8px;
-box-shadow:0 3px 10px rgba(0,0,0,0.1);
+border-radius:10px;
+box-shadow:0 4px 12px rgba(0,0,0,0.1);
+}
+
+.header-bar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:15px;
+}
+
+.total-box{
+font-weight:bold;
+color:#0d6efd;
+font-size:18px;
 }
 
 </style>
@@ -33,11 +46,13 @@ box-shadow:0 3px 10px rgba(0,0,0,0.1);
 
 <div class="container mt-4">
 
+<div class="header-bar">
+
 <h3>Rig Daily Entry</h3>
 
-<hr>
+<div>
 
-<a href="dashboard.php" class="btn btn-secondary btn-sm">⬅ Back to Dashboard</a>
+<a href="dashboard.php" class="btn btn-secondary btn-sm">⬅ Dashboard</a>
 
 <a href="report_daily.php" class="btn btn-outline-primary btn-sm">Daily Report</a>
 
@@ -45,56 +60,49 @@ box-shadow:0 3px 10px rgba(0,0,0,0.1);
 
 <a href="alerts.php" class="btn btn-outline-danger btn-sm">Zero Rate Alerts</a>
 
+</div>
+
+</div>
+
 <hr>
 
 <div class="form-card">
 
-<form action="save_entry.php" method="POST">
+<form action="save_entry.php" method="POST" oninput="calculateTotal()">
 
 <div class="row">
 
 <div class="col-md-4 mb-3">
+
 <label>Date</label>
-<input type="date" name="date" class="form-control" required>
+
+<input type="date" name="date" class="form-control"
+value="<?php echo date('Y-m-d'); ?>" required>
+
 </div>
 
 <div class="col-md-4 mb-3">
+
 <label>Rig</label>
-<input type="text" name="rig" class="form-control" placeholder="Rig Name" required>
+
+<select name="rig" class="form-control" required>
+
+<option value="">Select Rig</option>
+
+<option value="PPE-1">PPE-1</option>
+<option value="PPE-2">PPE-2</option>
+<option value="PPE-3">PPE-3</option>
+<option value="PPE-4">PPE-4</option>
+<option value="PPE-5">PPE-5</option>
+
+</select>
+
 </div>
 
 <div class="col-md-4 mb-3">
-<label>Operating Hours</label>
-<input type="number" step="0.1" name="operating" class="form-control">
-</div>
 
-<div class="col-md-4 mb-3">
-<label>Standby Hours</label>
-<input type="number" step="0.1" name="standby" class="form-control">
-</div>
-
-<div class="col-md-4 mb-3">
-<label>Breakdown Hours</label>
-<input type="number" step="0.1" name="breakdown" class="form-control">
-</div>
-
-<div class="col-md-4 mb-3">
-<label>ILM Hours</label>
-<input type="number" step="0.1" name="ilm" class="form-control">
-</div>
-
-<div class="col-md-4 mb-3">
-<label>Zero Rate Hours</label>
-<input type="number" step="0.1" name="zero" class="form-control">
-</div>
-
-<div class="col-md-8 mb-3">
-<label>Reason (if Zero Rate)</label>
-<input type="text" name="reason" class="form-control">
-</div>
-
-<div class="col-md-4 mb-3">
 <label>Status</label>
+
 <select name="status" class="form-control">
 
 <option value="Running">Running</option>
@@ -102,15 +110,94 @@ box-shadow:0 3px 10px rgba(0,0,0,0.1);
 <option value="Breakdown">Breakdown</option>
 
 </select>
+
 </div>
 
 </div>
 
 <hr>
 
-<button type="submit" class="btn btn-success">Save Entry</button>
+<h5>Operational Hours</h5>
 
-<a href="dashboard.php" class="btn btn-secondary">Cancel</a>
+<div class="row">
+
+<div class="col-md-3 mb-3">
+
+<label>Operating</label>
+
+<input type="number" step="0.1" name="operating"
+id="operating" class="form-control" min="0" max="24">
+
+</div>
+
+<div class="col-md-3 mb-3">
+
+<label>Standby</label>
+
+<input type="number" step="0.1" name="standby"
+id="standby" class="form-control" min="0" max="24">
+
+</div>
+
+<div class="col-md-3 mb-3">
+
+<label>Breakdown</label>
+
+<input type="number" step="0.1" name="breakdown"
+id="breakdown" class="form-control" min="0" max="24">
+
+</div>
+
+<div class="col-md-3 mb-3">
+
+<label>ILM</label>
+
+<input type="number" step="0.1" name="ilm"
+id="ilm" class="form-control" min="0" max="24">
+
+</div>
+
+<div class="col-md-3 mb-3">
+
+<label>Zero Rate</label>
+
+<input type="number" step="0.1" name="zero"
+id="zero" class="form-control" min="0" max="24">
+
+</div>
+
+<div class="col-md-9 mb-3">
+
+<label>Reason (if Zero Rate)</label>
+
+<input type="text" name="reason" class="form-control"
+placeholder="Enter reason for zero rate hours">
+
+</div>
+
+</div>
+
+<hr>
+
+<div class="total-box">
+
+Total Hours: <span id="total">0</span> / 24
+
+</div>
+
+<hr>
+
+<button type="submit" class="btn btn-success">
+
+Save Entry
+
+</button>
+
+<a href="dashboard.php" class="btn btn-secondary">
+
+Cancel
+
+</a>
 
 </form>
 
@@ -118,5 +205,24 @@ box-shadow:0 3px 10px rgba(0,0,0,0.1);
 
 </div>
 
+<script>
+
+function calculateTotal(){
+
+let operating = parseFloat(document.getElementById("operating").value) || 0;
+let standby = parseFloat(document.getElementById("standby").value) || 0;
+let breakdown = parseFloat(document.getElementById("breakdown").value) || 0;
+let ilm = parseFloat(document.getElementById("ilm").value) || 0;
+let zero = parseFloat(document.getElementById("zero").value) || 0;
+
+let total = operating + standby + breakdown + ilm + zero;
+
+document.getElementById("total").innerText = total.toFixed(1);
+
+}
+
+</script>
+
 </body>
+
 </html>
