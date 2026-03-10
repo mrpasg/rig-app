@@ -31,29 +31,29 @@ $whereSQL="WHERE ".implode(" AND ",$where);
 
 /* SUMMARY */
 
-$summary = $conn->query("
+$summary=$conn->query("
 SELECT
-COALESCE(SUM(operating_hours),0) AS operating,
-COALESCE(SUM(standby_hours),0) AS standby,
-COALESCE(SUM(breakdown_hours),0) AS breakdown,
-COALESCE(SUM(ilm_hours),0) AS ilm,
-COALESCE(SUM(zero_rate_hours),0) AS zero_rate,
-COUNT(DISTINCT rig) AS rigs
+COALESCE(SUM(operating_hours),0) operating,
+COALESCE(SUM(standby_hours),0) standby,
+COALESCE(SUM(breakdown_hours),0) breakdown,
+COALESCE(SUM(ilm_hours),0) ilm,
+COALESCE(SUM(zero_rate_hours),0) zero_rate,
+COUNT(DISTINCT rig) rigs
 FROM rig_daily_log
 $whereSQL
 ")->fetch_assoc();
 
 $rigs=$summary['rigs'];
 $operating=$summary['operating'];
-$standby=$summary['standby'];
-$breakdown=$summary['breakdown'];
-$ilm=$summary['ilm'];
-$zero=$summary['zero_rate'];
+$standby_total=$summary['standby'];
+$breakdown_total=$summary['breakdown'];
+$ilm_total=$summary['ilm'];
+$zero_total=$summary['zero_rate'];
 
 $efficiency=($rigs>0)?($operating/($rigs*24))*100:0;
 
 
-/* RIG STATUS */
+/* STATUS BOARD */
 
 $status=$conn->query("
 SELECT r1.rig,r1.status
@@ -86,6 +86,9 @@ LIMIT 5
 $perf=$conn->query("
 SELECT DATE(date) d,
 SUM(operating_hours) operating,
+SUM(standby_hours) standby,
+SUM(breakdown_hours) breakdown,
+SUM(ilm_hours) ilm,
 SUM(zero_rate_hours) zero_rate
 FROM rig_daily_log
 $whereSQL
@@ -95,12 +98,20 @@ ORDER BY d
 
 $dates=[];
 $oper=[];
+$standby=[];
+$breakdown=[];
+$ilm=[];
 $zero_arr=[];
 
 while($r=$perf->fetch_assoc()){
+
 $dates[]=$r['d'];
 $oper[]=$r['operating'];
+$standby[]=$r['standby'];
+$breakdown[]=$r['breakdown'];
+$ilm[]=$r['ilm'];
 $zero_arr[]=$r['zero_rate'];
+
 }
 
 
@@ -296,7 +307,7 @@ echo "<tr>
 
 <div class="card-box">
 
-<h5>Operational Performance</h5>
+<h5>Operational Trend</h5>
 
 <canvas id="perfChart"></canvas>
 
@@ -315,9 +326,7 @@ echo "<tr>
 <script>
 
 new Chart(document.getElementById('effGauge'),{
-
 type:'doughnut',
-
 data:{
 labels:['Efficiency','Remaining'],
 datasets:[{
@@ -325,13 +334,9 @@ data:[<?php echo $efficiency ?>,100-<?php echo $efficiency ?>],
 backgroundColor:['#28a745','#e0e0e0']
 }]
 },
-
-options:{
-cutout:'70%',
-plugins:{legend:{display:false}}
-}
-
+options:{cutout:'70%',plugins:{legend:{display:false}}}
 });
+
 
 new Chart(document.getElementById('perfChart'),{
 
@@ -339,23 +344,50 @@ type:'line',
 
 data:{
 labels: <?php echo json_encode($dates); ?>,
+
 datasets:[
+
 {
 label:'Operating',
 data: <?php echo json_encode($oper); ?>,
 borderColor:'#28a745',
 fill:false
 },
+
+{
+label:'Standby',
+data: <?php echo json_encode($standby); ?>,
+borderColor:'#ffc107',
+fill:false
+},
+
+{
+label:'Breakdown',
+data: <?php echo json_encode($breakdown); ?>,
+borderColor:'#dc3545',
+fill:false
+},
+
+{
+label:'ILM',
+data: <?php echo json_encode($ilm); ?>,
+borderColor:'#6f42c1',
+fill:false
+},
+
 {
 label:'Zero Rate',
 data: <?php echo json_encode($zero_arr); ?>,
-borderColor:'#dc3545',
+borderColor:'#000000',
 fill:false
 }
+
 ]
+
 }
 
 });
+
 
 new Chart(document.getElementById('rigChart'),{
 
