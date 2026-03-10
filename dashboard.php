@@ -30,41 +30,38 @@ $efficiency = ($rigs > 0) ? ($operating / ($rigs*24))*100 : 0;
 
 <title>Rig Operations Dashboard</title>
 
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 
 body{
 font-family: Arial;
-margin:40px;
+background:#f5f5f5;
+padding:30px;
 }
 
-.card{
-border:1px solid #ccc;
-padding:20px;
-width:180px;
-text-align:center;
-}
-
-.container{
+.dashboard-cards{
 display:flex;
-gap:30px;
+gap:25px;
 margin-bottom:30px;
 }
 
-table{
-border-collapse:collapse;
-width:100%;
-}
-
-th,td{
-border:1px solid #ccc;
-padding:8px;
+.card-box{
+background:white;
+border-radius:6px;
+padding:20px;
+width:200px;
 text-align:center;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
-th{
-background:#f2f2f2;
+.chart-box{
+background:white;
+padding:25px;
+margin-bottom:30px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
 </style>
@@ -86,31 +83,35 @@ background:#f2f2f2;
 
 <hr>
 
-<div class="container">
+<div class="dashboard-cards">
 
-<div class="card">
-<h3>Total Rigs</h3>
-<?php echo $rigs; ?>
+<div class="card-box">
+<h5>Total Rigs</h5>
+<h3><?php echo $rigs; ?></h3>
 </div>
 
-<div class="card">
-<h3>Operating Hours</h3>
-<?php echo $operating; ?>
+<div class="card-box">
+<h5>Operating Hours</h5>
+<h3><?php echo $operating; ?></h3>
 </div>
 
-<div class="card">
-<h3>Zero Rate</h3>
-<span style="color:red"><?php echo $zero; ?></span>
+<div class="card-box">
+<h5>Zero Rate</h5>
+<h3 style="color:red"><?php echo $zero; ?></h3>
 </div>
 
-<div class="card">
-<h3>Efficiency</h3>
-<?php echo round($efficiency,2); ?> %
+<div class="card-box">
+<h5>Efficiency</h5>
+<h3><?php echo round($efficiency,2); ?>%</h3>
 </div>
 
 </div>
 
-<canvas id="dailyChart" height="100"></canvas>
+<div class="chart-box">
+
+<canvas id="dailyChart"></canvas>
+
+</div>
 
 <script>
 
@@ -118,17 +119,16 @@ const ctx = document.getElementById('dailyChart');
 
 new Chart(ctx, {
 
-type: 'bar',
+type:'bar',
 
-data: {
+data:{
+labels:['Operating','Standby','Breakdown','ILM','Zero Rate'],
 
-labels: ['Operating','Standby','Breakdown','ILM','Zero Rate'],
+datasets:[{
 
-datasets: [{
+label:'Hours',
 
-label: 'Hours',
-
-data: [
+data:[
 <?php echo $operating; ?>,
 <?php echo $standby; ?>,
 <?php echo $breakdown; ?>,
@@ -154,9 +154,9 @@ backgroundColor:[
 
 <hr>
 
-<h3>Latest Daily Rig Report</h3>
+<h4>Latest Daily Rig Report</h4>
 
-<table>
+<table class="table table-bordered table-striped">
 
 <tr>
 <th>Date</th>
