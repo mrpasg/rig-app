@@ -1,22 +1,32 @@
 <?php
 include "config.php";
 
-/* DATE FILTER */
+/* FILTERS */
 
-$where="";
+$where=[];
 
 if(isset($_GET['range'])){
 
 if($_GET['range']=="today")
-$where="WHERE date = CURDATE()";
+$where[]="date = CURDATE()";
 
 if($_GET['range']=="week")
-$where="WHERE YEARWEEK(date)=YEARWEEK(CURDATE())";
+$where[]="YEARWEEK(date)=YEARWEEK(CURDATE())";
 
 if($_GET['range']=="month")
-$where="WHERE MONTH(date)=MONTH(CURDATE())";
+$where[]="MONTH(date)=MONTH(CURDATE())";
 
 }
+
+if(isset($_GET['rig']) && $_GET['rig']!=""){
+$where[]="rig='". $_GET['rig'] ."'";
+}
+
+$whereSQL="";
+
+if(count($where)>0)
+$whereSQL="WHERE ".implode(" AND ",$where);
+
 
 /* SUMMARY */
 
@@ -29,7 +39,7 @@ COALESCE(SUM(ilm_hours),0) AS ilm,
 COALESCE(SUM(zero_rate_hours),0) AS zero_rate,
 COUNT(DISTINCT rig) AS rigs
 FROM rig_daily_log
-$where
+$whereSQL
 ")->fetch_assoc();
 
 $rigs=$summary['rigs'];
@@ -41,7 +51,8 @@ $zero=$summary['zero_rate'];
 
 $efficiency=($rigs>0)?($operating/($rigs*24))*100:0;
 
-/* RIG STATUS */
+
+/* RIG STATUS BOARD */
 
 $status=$conn->query("
 SELECT r1.rig,r1.status
@@ -55,6 +66,7 @@ GROUP BY rig
 ON r1.rig=r2.rig AND r1.date=r2.maxdate
 ");
 
+
 /* ALERTS */
 
 $alerts=$conn->query("
@@ -65,6 +77,7 @@ ORDER BY date DESC
 LIMIT 5
 ");
 
+
 /* PERFORMANCE TREND */
 
 $perf=$conn->query("
@@ -72,7 +85,7 @@ SELECT DATE(date) d,
 SUM(operating_hours) operating,
 SUM(zero_rate_hours) zero_rate
 FROM rig_daily_log
-$where
+$whereSQL
 GROUP BY d
 ORDER BY d
 ");
@@ -87,12 +100,13 @@ $oper[]=$r['operating'];
 $zero_arr[]=$r['zero_rate'];
 }
 
+
 /* RIG PERFORMANCE */
 
 $rigPerf=$conn->query("
 SELECT rig,SUM(operating_hours) total_operating
 FROM rig_daily_log
-$where
+$whereSQL
 GROUP BY rig
 ");
 
@@ -154,16 +168,36 @@ margin-bottom:20px;
 
 <hr>
 
-<form method="GET" class="mb-3">
+<form method="GET" class="row g-2 mb-3">
 
-<select name="range" onchange="this.form.submit()" class="form-select w-25">
+<div class="col-md-3">
 
-<option value="">All Data</option>
+<select name="rig" class="form-select" onchange="this.form.submit()">
+
+<option value="">All Rigs</option>
+
+<option value="PPE-1">PPE-1</option>
+<option value="PPE-2">PPE-2</option>
+<option value="PPE-3">PPE-3</option>
+<option value="PPE-4">PPE-4</option>
+<option value="PPE-5">PPE-5</option>
+
+</select>
+
+</div>
+
+<div class="col-md-3">
+
+<select name="range" class="form-select" onchange="this.form.submit()">
+
+<option value="">All Time</option>
 <option value="today">Today</option>
 <option value="week">This Week</option>
 <option value="month">This Month</option>
 
 </select>
+
+</div>
 
 </form>
 
