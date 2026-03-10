@@ -1,7 +1,7 @@
 <?php
 include "config.php";
 
-/* FILTERS */
+/* FILTER BUILD */
 
 $where=[];
 
@@ -19,7 +19,8 @@ $where[]="MONTH(date)=MONTH(CURDATE())";
 }
 
 if(isset($_GET['rig']) && $_GET['rig']!=""){
-$where[]="rig='". $_GET['rig'] ."'";
+$rig=$conn->real_escape_string($_GET['rig']);
+$where[]="rig='$rig'";
 }
 
 $whereSQL="";
@@ -52,7 +53,7 @@ $zero=$summary['zero_rate'];
 $efficiency=($rigs>0)?($operating/($rigs*24))*100:0;
 
 
-/* RIG STATUS BOARD */
+/* RIG STATUS */
 
 $status=$conn->query("
 SELECT r1.rig,r1.status
@@ -64,6 +65,7 @@ FROM rig_daily_log
 GROUP BY rig
 ) r2
 ON r1.rig=r2.rig AND r1.date=r2.maxdate
+".(isset($rig)?"WHERE r1.rig='$rig'":"")."
 ");
 
 
@@ -73,6 +75,7 @@ $alerts=$conn->query("
 SELECT rig,zero_rate_hours,date
 FROM rig_daily_log
 WHERE zero_rate_hours>0
+".(isset($rig)?"AND rig='$rig'":"")."
 ORDER BY date DESC
 LIMIT 5
 ");
@@ -176,11 +179,11 @@ margin-bottom:20px;
 
 <option value="">All Rigs</option>
 
-<option value="PPE-1">PPE-1</option>
-<option value="PPE-2">PPE-2</option>
-<option value="PPE-3">PPE-3</option>
-<option value="PPE-4">PPE-4</option>
-<option value="PPE-5">PPE-5</option>
+<option value="PPE-1" <?php if(isset($_GET['rig']) && $_GET['rig']=="PPE-1") echo "selected"; ?>>PPE-1</option>
+<option value="PPE-2" <?php if(isset($_GET['rig']) && $_GET['rig']=="PPE-2") echo "selected"; ?>>PPE-2</option>
+<option value="PPE-3" <?php if(isset($_GET['rig']) && $_GET['rig']=="PPE-3") echo "selected"; ?>>PPE-3</option>
+<option value="PPE-4" <?php if(isset($_GET['rig']) && $_GET['rig']=="PPE-4") echo "selected"; ?>>PPE-4</option>
+<option value="PPE-5" <?php if(isset($_GET['rig']) && $_GET['rig']=="PPE-5") echo "selected"; ?>>PPE-5</option>
 
 </select>
 
@@ -191,9 +194,9 @@ margin-bottom:20px;
 <select name="range" class="form-select" onchange="this.form.submit()">
 
 <option value="">All Time</option>
-<option value="today">Today</option>
-<option value="week">This Week</option>
-<option value="month">This Month</option>
+<option value="today" <?php if(isset($_GET['range']) && $_GET['range']=="today") echo "selected"; ?>>Today</option>
+<option value="week" <?php if(isset($_GET['range']) && $_GET['range']=="week") echo "selected"; ?>>This Week</option>
+<option value="month" <?php if(isset($_GET['range']) && $_GET['range']=="month") echo "selected"; ?>>This Month</option>
 
 </select>
 
