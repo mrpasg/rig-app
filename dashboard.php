@@ -1,8 +1,10 @@
 <?php
 include "config.php";
 
-$result = $conn->query("
-SELECT 
+/* SUMMARY DATA */
+
+$summary = $conn->query("
+SELECT
 COALESCE(SUM(operating_hours),0) AS operating,
 COALESCE(SUM(standby_hours),0) AS standby,
 COALESCE(SUM(breakdown_hours),0) AS breakdown,
@@ -10,22 +12,69 @@ COALESCE(SUM(ilm_hours),0) AS ilm,
 COALESCE(SUM(zero_rate_hours),0) AS zero_rate,
 COUNT(DISTINCT rig) AS rigs
 FROM rig_daily_log
+")->fetch_assoc();
+
+$rigs = $summary['rigs'];
+$operating = $summary['operating'];
+$standby = $summary['standby'];
+$breakdown = $summary['breakdown'];
+$ilm = $summary['ilm'];
+$zero = $summary['zero_rate'];
+
+$efficiency = ($rigs>0) ? ($operating/($rigs*24))*100 : 0;
+
+
+/* RIG STATUS BOARD (latest status per rig) */
+
+$status = $conn->query("
+SELECT r1.rig,r1.status
+FROM rig_daily_log r1
+INNER JOIN
+(
+SELECT rig, MAX(date) maxdate
+FROM rig_daily_log
+GROUP BY rig
+) r2
+ON r1.rig=r2.rig AND r1.date=r2.maxdate
 ");
 
-$data = $result->fetch_assoc();
 
-$rigs = $data['rigs'];
-$operating = $data['operating'];
-$standby = $data['standby'];
-$breakdown = $data['breakdown'];
-$ilm = $data['ilm'];
-$zero = $data['zero_rate'];
+/* DOWNTIME ALERTS */
 
-$efficiency = ($rigs > 0) ? ($operating / ($rigs*24))*100 : 0;
+$alerts = $conn->query("
+SELECT rig,zero_rate_hours,reason,date
+FROM rig_daily_log
+WHERE zero_rate_hours>0
+ORDER BY date DESC
+LIMIT 5
+");
+
+
+/* PERFORMANCE CHART */
+
+$perf = $conn->query("
+SELECT DATE(date) d,
+SUM(operating_hours) operating,
+SUM(zero_rate_hours) zero_rate
+FROM rig_daily_log
+GROUP BY d
+ORDER BY d
+");
+
+$dates=[];
+$oper=[];
+$zero_arr=[];
+
+while($r=$perf->fetch_assoc()){
+$dates[]=$r['d'];
+$oper[]=$r['operating'];
+$zero_arr[]=$r['zero_rate'];
+}
 ?>
 
 <!DOCTYPE html>
 <html>
+
 <head>
 
 <title>Rig Operations Dashboard</title>
@@ -37,32 +86,21 @@ $efficiency = ($rigs > 0) ? ($operating / ($rigs*24))*100 : 0;
 <style>
 
 body{
-font-family: Arial;
-background:#f5f5f5;
-padding:30px;
-}
-
-.dashboard-cards{
-display:flex;
-gap:25px;
-margin-bottom:30px;
+background:#f4f6f9;
+font-family:Arial;
 }
 
 .card-box{
 background:white;
-border-radius:6px;
 padding:20px;
-width:200px;
-text-align:center;
-box-shadow:0 2px 6px rgba(0,0,0,0.1);
+border-radius:8px;
+box-shadow:0 2px 8px rgba(0,0,0,0.1);
+margin-bottom:20px;
 }
 
-.chart-box{
-background:white;
-padding:25px;
-margin-bottom:30px;
-box-shadow:0 2px 6px rgba(0,0,0,0.1);
-}
+.status-running{background:#28a745;color:white;padding:4px;border-radius:4px;}
+.status-standby{background:#ffc107;padding:4px;border-radius:4px;}
+.status-breakdown{background:#dc3545;color:white;padding:4px;border-radius:4px;}
 
 </style>
 
@@ -70,130 +108,180 @@ box-shadow:0 2px 6px rgba(0,0,0,0.1);
 
 <body>
 
-<h2>Rig Operations Dashboard</h2>
+<div class="container mt-4">
+
+<h3>Rig Operations Dashboard</h3>
 
 <hr>
 
-<a href="dashboard.php">Dashboard</a> |
-<a href="add_entry.php">Add Entry</a> |
-<a href="alerts.php">Zero Rate Alerts</a> |
-<a href="report_daily.php">Daily Report</a> |
-<a href="report_monthly.php">Monthly Report</a> |
-<a href="export_excel.php">Export Excel</a>
+<a href="add_entry.php" class="btn btn-primary btn-sm">Add Entry</a>
+<a href="report_daily.php" class="btn btn-outline-primary btn-sm">Daily Report</a>
+<a href="report_monthly.php" class="btn btn-outline-primary btn-sm">Monthly Report</a>
+<a href="alerts.php" class="btn btn-danger btn-sm">Alerts</a>
 
 <hr>
 
-<div class="dashboard-cards">
+<div class="row">
+
+<!-- STATUS BOARD -->
+
+<div class="col-md-4">
 
 <div class="card-box">
-<h5>Total Rigs</h5>
-<h3><?php echo $rigs; ?></h3>
-</div>
 
-<div class="card-box">
-<h5>Operating Hours</h5>
-<h3><?php echo $operating; ?></h3>
-</div>
+<h5>Rig Status Board</h5>
 
-<div class="card-box">
-<h5>Zero Rate</h5>
-<h3 style="color:red"><?php echo $zero; ?></h3>
-</div>
-
-<div class="card-box">
-<h5>Efficiency</h5>
-<h3><?php echo round($efficiency,2); ?>%</h3>
-</div>
-
-</div>
-
-<div class="chart-box">
-
-<canvas id="dailyChart"></canvas>
-
-</div>
-
-<script>
-
-const ctx = document.getElementById('dailyChart');
-
-new Chart(ctx, {
-
-type:'bar',
-
-data:{
-labels:['Operating','Standby','Breakdown','ILM','Zero Rate'],
-
-datasets:[{
-
-label:'Hours',
-
-data:[
-<?php echo $operating; ?>,
-<?php echo $standby; ?>,
-<?php echo $breakdown; ?>,
-<?php echo $ilm; ?>,
-<?php echo $zero; ?>
-],
-
-backgroundColor:[
-'#4CAF50',
-'#2196F3',
-'#FF9800',
-'#9C27B0',
-'#F44336'
-]
-
-}]
-
-}
-
-});
-
-</script>
-
-<hr>
-
-<h4>Latest Daily Rig Report</h4>
-
-<table class="table table-bordered table-striped">
+<table class="table table-bordered">
 
 <tr>
-<th>Date</th>
 <th>Rig</th>
-<th>Operating</th>
-<th>Standby</th>
-<th>Breakdown</th>
-<th>ILM</th>
-<th>Zero Rate</th>
+<th>Status</th>
 </tr>
 
 <?php
 
-$daily = $conn->query("
-SELECT date, rig, operating_hours, standby_hours, breakdown_hours, ilm_hours, zero_rate_hours
-FROM rig_daily_log
-ORDER BY date DESC
-LIMIT 10
-");
+while($row=$status->fetch_assoc()){
 
-while($row = $daily->fetch_assoc()){
+$cls='';
+
+if($row['status']=="Running") $cls="status-running";
+if($row['status']=="Standby") $cls="status-standby";
+if($row['status']=="Breakdown") $cls="status-breakdown";
 
 echo "<tr>
-<td>{$row['date']}</td>
 <td>{$row['rig']}</td>
-<td>{$row['operating_hours']}</td>
-<td>{$row['standby_hours']}</td>
-<td>{$row['breakdown_hours']}</td>
-<td>{$row['ilm_hours']}</td>
-<td style='color:red'>{$row['zero_rate_hours']}</td>
+<td><span class='$cls'>{$row['status']}</span></td>
 </tr>";
-
 }
 
 ?>
 
 </table>
+
+</div>
+
+</div>
+
+
+<!-- EFFICIENCY GAUGE -->
+
+<div class="col-md-4">
+
+<div class="card-box text-center">
+
+<h5>Rig Efficiency</h5>
+
+<canvas id="effGauge"></canvas>
+
+<h4><?php echo round($efficiency,1); ?>%</h4>
+
+</div>
+
+</div>
+
+
+<!-- ALERTS -->
+
+<div class="col-md-4">
+
+<div class="card-box">
+
+<h5>Downtime Alerts</h5>
+
+<table class="table table-striped">
+
+<tr>
+<th>Rig</th>
+<th>Zero Rate</th>
+<th>Date</th>
+</tr>
+
+<?php
+
+while($row=$alerts->fetch_assoc()){
+
+echo "<tr>
+<td>{$row['rig']}</td>
+<td style='color:red'>{$row['zero_rate_hours']}</td>
+<td>{$row['date']}</td>
+</tr>";
+}
+
+?>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- PERFORMANCE CHART -->
+
+<div class="card-box">
+
+<h5>Operational Performance</h5>
+
+<canvas id="perfChart"></canvas>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* EFFICIENCY GAUGE */
+
+new Chart(document.getElementById('effGauge'),{
+
+type:'doughnut',
+
+data:{
+labels:['Efficiency','Remaining'],
+datasets:[{
+data:[<?php echo $efficiency ?>,100-<?php echo $efficiency ?>],
+backgroundColor:['#28a745','#e0e0e0']
+}]
+},
+
+options:{
+cutout:'70%',
+plugins:{legend:{display:false}}
+}
+
+});
+
+
+/* PERFORMANCE TREND */
+
+new Chart(document.getElementById('perfChart'),{
+
+type:'line',
+
+data:{
+labels: <?php echo json_encode($dates); ?>,
+datasets:[
+{
+label:'Operating',
+data: <?php echo json_encode($oper); ?>,
+borderColor:'#28a745',
+fill:false
+},
+{
+label:'Zero Rate',
+data: <?php echo json_encode($zero_arr); ?>,
+borderColor:'#dc3545',
+fill:false
+}
+]
+}
+
+});
+
+</script>
 
 </body>
 </html>
