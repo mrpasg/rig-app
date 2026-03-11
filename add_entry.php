@@ -34,6 +34,12 @@ color:#0d6efd;
 font-size:18px;
 }
 
+.remaining-box{
+font-weight:bold;
+color:#198754;
+font-size:16px;
+}
+
 </style>
 
 </head>
@@ -99,31 +105,31 @@ value="<?php echo date('Y-m-d'); ?>" required>
 
 <div class="col-md-3 mb-3">
 <label>Operating</label>
-<input type="number" step="0.1" name="operating"
+<input type="number" step="0.01" name="operating"
 id="operating" class="form-control" min="0" max="24">
 </div>
 
 <div class="col-md-3 mb-3">
 <label>Standby</label>
-<input type="number" step="0.1" name="standby"
+<input type="number" step="0.01" name="standby"
 id="standby" class="form-control" min="0" max="24">
 </div>
 
 <div class="col-md-3 mb-3">
 <label>Breakdown</label>
-<input type="number" step="0.1" name="breakdown"
+<input type="number" step="0.01" name="breakdown"
 id="breakdown" class="form-control" min="0" max="24">
 </div>
 
 <div class="col-md-3 mb-3">
 <label>ILM</label>
-<input type="number" step="0.1" name="ilm"
+<input type="number" step="0.01" name="ilm"
 id="ilm" class="form-control" min="0" max="24">
 </div>
 
 <div class="col-md-3 mb-3">
 <label>Zero Rate</label>
-<input type="number" step="0.1" name="zero"
+<input type="number" step="0.01" name="zero"
 id="zero" class="form-control" min="0" max="24">
 </div>
 
@@ -138,6 +144,10 @@ id="zero" class="form-control" min="0" max="24">
 
 <div class="total-box">
 Total Hours: <span id="total">0</span> / 24
+</div>
+
+<div class="remaining-box">
+Remaining Hours: <span id="remaining">24</span>
 </div>
 
 <hr>
@@ -156,7 +166,6 @@ Cancel
 
 </div>
 
-
 <script>
 
 function calculateTotal(){
@@ -170,13 +179,20 @@ let zero = parseFloat(document.getElementById("zero").value) || 0;
 let total = operating + standby + breakdown + ilm + zero;
 
 let totalDisplay = document.getElementById("total");
+let remainingDisplay = document.getElementById("remaining");
 
-totalDisplay.innerText = total.toFixed(1);
+totalDisplay.innerText = total.toFixed(2);
+
+let remaining = 24 - total;
+
+remainingDisplay.innerText = remaining.toFixed(2);
 
 if(total > 24){
 totalDisplay.style.color = "red";
+remainingDisplay.style.color = "red";
 }else{
 totalDisplay.style.color = "#0d6efd";
+remainingDisplay.style.color = "#198754";
 }
 
 }
@@ -194,8 +210,10 @@ let zero = parseFloat(document.getElementById("zero").value) || 0;
 let total = operating + standby + breakdown + ilm + zero;
 
 if(total > 24){
+
 alert("Total hours cannot exceed 24 hours.");
 e.preventDefault();
+
 }
 
 });
