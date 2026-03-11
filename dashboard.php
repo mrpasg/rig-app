@@ -69,7 +69,7 @@ ON r1.rig=r2.rig AND r1.date=r2.maxdate
 ");
 
 
-/* ALERTS */
+/* ALERT PANELS */
 
 $zeroAlerts=$conn->query("
 SELECT rig,zero_rate_hours,date
@@ -126,12 +126,14 @@ ORDER BY d
 $dates=[];$oper=[];$standby=[];$breakdown=[];$ilm=[];$zero=[];
 
 while($r=$perf->fetch_assoc()){
+
 $dates[]=$r['d'];
 $oper[]=$r['operating'];
 $standby[]=$r['standby'];
 $breakdown[]=$r['breakdown'];
 $ilm[]=$r['ilm'];
 $zero[]=$r['zero_rate'];
+
 }
 
 
@@ -155,46 +157,27 @@ $rigHours[]=$row['total_operating'];
 
 <!DOCTYPE html>
 <html>
+
 <head>
 
 <title>Rig Operations Dashboard</title>
 
+<link rel="stylesheet" href="style.css">
+
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-
-body{background:#f4f6f9;font-family:Arial;}
-
-.card-box{
-background:white;
-padding:20px;
-border-radius:8px;
-box-shadow:0 2px 8px rgba(0,0,0,0.1);
-margin-bottom:20px;
-}
-
-.status-running{background:#28a745;color:white;padding:4px;border-radius:4px;}
-.status-standby{background:#ffc107;padding:4px;border-radius:4px;}
-.status-breakdown{background:#dc3545;color:white;padding:4px;border-radius:4px;}
-
-</style>
 
 </head>
 
 <body>
 
-<div class="container mt-4">
+<?php include "header.php"; ?>
+<?php include "sidebar.php"; ?>
+
+<div class="main">
 
 <h3>Rig Operations Dashboard</h3>
-
-<hr>
-
-<a href="add_entry.php" class="btn btn-primary btn-sm">Add Entry</a>
-<a href="report_daily.php" class="btn btn-outline-primary btn-sm">Daily Report</a>
-<a href="report_monthly.php" class="btn btn-outline-primary btn-sm">Monthly Report</a>
-
-<hr>
 
 <form method="GET" class="row g-2 mb-3">
 
@@ -240,12 +223,17 @@ margin-bottom:20px;
 
 <table class="table table-bordered">
 
-<tr><th>Rig</th><th>Status</th></tr>
+<tr>
+<th>Rig</th>
+<th>Status</th>
+</tr>
 
 <?php
+
 while($row=$status->fetch_assoc()){
 
 $cls='';
+
 if($row['status']=="Running") $cls="status-running";
 if($row['status']=="Standby") $cls="status-standby";
 if($row['status']=="Breakdown") $cls="status-breakdown";
@@ -256,6 +244,7 @@ echo "<tr>
 </tr>";
 
 }
+
 ?>
 
 </table>
@@ -284,13 +273,9 @@ echo "<tr>
 <div class="row">
 
 <div class="col-md-3">
-
 <div class="card-box">
-
 <h6>Zero Rate Alerts</h6>
-
 <table class="table table-sm">
-
 <tr><th>Rig</th><th>Zero</th><th>Date</th></tr>
 
 <?php while($r=$zeroAlerts->fetch_assoc()){
@@ -302,19 +287,13 @@ echo "<tr>
 } ?>
 
 </table>
-
 </div>
-
 </div>
 
 <div class="col-md-3">
-
 <div class="card-box">
-
 <h6>Standby Alerts</h6>
-
 <table class="table table-sm">
-
 <tr><th>Rig</th><th>Standby</th><th>Date</th></tr>
 
 <?php while($r=$standbyAlerts->fetch_assoc()){
@@ -326,19 +305,13 @@ echo "<tr>
 } ?>
 
 </table>
-
 </div>
-
 </div>
 
 <div class="col-md-3">
-
 <div class="card-box">
-
 <h6>Breakdown Alerts</h6>
-
 <table class="table table-sm">
-
 <tr><th>Rig</th><th>Breakdown</th><th>Date</th></tr>
 
 <?php while($r=$breakdownAlerts->fetch_assoc()){
@@ -350,19 +323,13 @@ echo "<tr>
 } ?>
 
 </table>
-
 </div>
-
 </div>
 
 <div class="col-md-3">
-
 <div class="card-box">
-
 <h6>ILM Alerts</h6>
-
 <table class="table table-sm">
-
 <tr><th>Rig</th><th>ILM</th><th>Date</th></tr>
 
 <?php while($r=$ilmAlerts->fetch_assoc()){
@@ -374,9 +341,7 @@ echo "<tr>
 } ?>
 
 </table>
-
 </div>
-
 </div>
 
 </div>
@@ -397,40 +362,60 @@ echo "<tr>
 <canvas id="downtimeChart"></canvas>
 </div>
 
-
 </div>
 
 
 <script>
 
+/* Efficiency Gauge */
+
 new Chart(document.getElementById('effGauge'),{
+
 type:'doughnut',
+
 data:{
 labels:['Efficiency','Remaining'],
-datasets:[{data:[<?php echo $efficiency ?>,100-<?php echo $efficiency ?>],
-backgroundColor:['#28a745','#e0e0e0']}]
+datasets:[{
+data:[<?php echo $efficiency ?>,100-<?php echo $efficiency ?>],
+backgroundColor:['#28a745','#e0e0e0']
+}]
 },
+
 options:{cutout:'70%',plugins:{legend:{display:false}}}
+
 });
 
 
+/* Operational Trend */
+
 new Chart(document.getElementById('perfChart'),{
+
 type:'line',
+
 data:{
 labels: <?php echo json_encode($dates); ?>,
+
 datasets:[
+
 {label:'Operating',data: <?php echo json_encode($oper); ?>,borderColor:'#28a745'},
 {label:'Standby',data: <?php echo json_encode($standby); ?>,borderColor:'#ffc107'},
 {label:'Breakdown',data: <?php echo json_encode($breakdown); ?>,borderColor:'#dc3545'},
 {label:'ILM',data: <?php echo json_encode($ilm); ?>,borderColor:'#6f42c1'},
 {label:'Zero Rate',data: <?php echo json_encode($zero); ?>,borderColor:'#000'}
+
 ]
+
 }
+
 });
 
 
+/* Rig Comparison */
+
 new Chart(document.getElementById('rigChart'),{
+
 type:'bar',
+
 data:{
 labels: <?php echo json_encode($rigNames); ?>,
 datasets:[{
@@ -439,18 +424,28 @@ data: <?php echo json_encode($rigHours); ?>,
 backgroundColor:'#007bff'
 }]
 }
+
 });
 
 
+/* Downtime Pie */
+
 new Chart(document.getElementById('downtimeChart'),{
+
 type:'pie',
+
 data:{
 labels:['Standby','Breakdown','ILM'],
 datasets:[{
-data:[<?php echo $standby_total ?>,<?php echo $breakdown_total ?>,<?php echo $ilm_total ?>],
+data:[
+<?php echo $standby_total ?>,
+<?php echo $breakdown_total ?>,
+<?php echo $ilm_total ?>
+],
 backgroundColor:['#ffc107','#dc3545','#6f42c1']
 }]
 }
+
 });
 
 </script>
