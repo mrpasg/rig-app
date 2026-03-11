@@ -16,6 +16,9 @@ ORDER BY date DESC
 
 $dates=[];
 $operating=[];
+$standby=[];
+$breakdown=[];
+$ilm=[];
 $zero=[];
 ?>
 
@@ -90,6 +93,9 @@ while($row=$result->fetch_assoc()){
 
 $dates[]=$row['date'];
 $operating[]=$row['operating_hours'];
+$standby[]=$row['standby_hours'];
+$breakdown[]=$row['breakdown_hours'];
+$ilm[]=$row['ilm_hours'];
 $zero[]=$row['zero_rate_hours'];
 
 echo "<tr>
@@ -114,7 +120,7 @@ echo "<tr>
 
 <div class="card-box">
 
-<h5>Daily Performance Chart</h5>
+<h5>Daily Operational Trend</h5>
 
 <canvas id="dailyChart"></canvas>
 
@@ -131,19 +137,44 @@ type:'line',
 data:{
 labels: <?php echo json_encode($dates); ?>,
 datasets:[
+
 {
-label:'Operating Hours',
+label:'Operating',
 data: <?php echo json_encode($operating); ?>,
-borderColor:'#4CAF50',
+borderColor:'#28a745',
 fill:false
 },
+
+{
+label:'Standby',
+data: <?php echo json_encode($standby); ?>,
+borderColor:'#ffc107',
+fill:false
+},
+
+{
+label:'Breakdown',
+data: <?php echo json_encode($breakdown); ?>,
+borderColor:'#dc3545',
+fill:false
+},
+
+{
+label:'ILM',
+data: <?php echo json_encode($ilm); ?>,
+borderColor:'#6f42c1',
+fill:false
+},
+
 {
 label:'Zero Rate',
 data: <?php echo json_encode($zero); ?>,
-borderColor:'#F44336',
+borderColor:'#000000',
 fill:false
 }
+
 ]
+
 }
 
 });
