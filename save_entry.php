@@ -2,17 +2,34 @@
 
 include "config.php";
 
-$date = $_POST['date'];
-$rig = $_POST['rig'];
+/* RECEIVE FORM DATA */
 
-$operating = $_POST['operating'];
-$standby = $_POST['standby'];
-$breakdown = $_POST['breakdown'];
-$ilm = $_POST['ilm'];
-$zero = $_POST['zero'];
+$date = $_POST['date'] ?? '';
+$rig = $_POST['rig'] ?? '';
 
-$reason = $_POST['reason'];
-$status = $_POST['status'];
+$operating = $_POST['operating'] ?? 0;
+$standby = $_POST['standby'] ?? 0;
+$breakdown = $_POST['breakdown'] ?? 0;
+$ilm = $_POST['ilm'] ?? 0;
+$zero = $_POST['zero'] ?? 0;
+
+$reason = $_POST['reason'] ?? '';
+$status = $_POST['status'] ?? '';
+
+/* SANITIZE INPUT */
+
+$date = $conn->real_escape_string($date);
+$rig = $conn->real_escape_string($rig);
+$reason = $conn->real_escape_string($reason);
+$status = $conn->real_escape_string($status);
+
+/* PREVENT NEGATIVE VALUES */
+
+$operating = max(0, $operating);
+$standby = max(0, $standby);
+$breakdown = max(0, $breakdown);
+$ilm = max(0, $ilm);
+$zero = max(0, $zero);
 
 
 /* HOURS VALIDATION */
@@ -21,8 +38,7 @@ $total_hours = $operating + $standby + $breakdown + $ilm + $zero;
 
 if($total_hours > 24){
 
-echo "<h3 style='color:red'>Error: Total hours cannot exceed 24 hours</h3>";
-exit;
+die("<h3 style='color:red'>Error: Total hours cannot exceed 24 hours</h3>");
 
 }
 
@@ -37,8 +53,7 @@ WHERE rig='$rig' AND date='$date'
 
 if($check->num_rows > 0){
 
-echo "<h3 style='color:red'>Error: Entry already exists for this rig and date</h3>";
-exit;
+die("<h3 style='color:red'>Error: Entry already exists for this rig and date</h3>");
 
 }
 
@@ -55,10 +70,11 @@ VALUES
 if($conn->query($sql)){
 
 header("Location: dashboard.php");
+exit;
 
 }else{
 
-echo "Error: ".$conn->error;
+echo "Database Error: ".$conn->error;
 
 }
 
