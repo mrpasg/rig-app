@@ -1,11 +1,12 @@
 <?php
 include "config.php";
 
-/* ---------- FILTERS ---------- */
+/* ---------------- FILTER ---------------- */
+
+$rig = $_GET['rig'] ?? "";
+$range = $_GET['range'] ?? "";
 
 $where=[];
-$rig = $_GET['rig'] ?? '';
-$range = $_GET['range'] ?? '';
 
 if($range=="today")
 $where[]="date = CURDATE()";
@@ -21,12 +22,10 @@ $rig=$conn->real_escape_string($rig);
 $where[]="rig='$rig'";
 }
 
-$whereSQL="";
-if(count($where)>0)
-$whereSQL="WHERE ".implode(" AND ",$where);
+$whereSQL = count($where) ? "WHERE ".implode(" AND ",$where) : "";
 
 
-/* ---------- SUMMARY ---------- */
+/* ---------------- SUMMARY ---------------- */
 
 $summary=$conn->query("
 SELECT
@@ -47,76 +46,51 @@ $ilm_total=$summary['ilm'];
 $zero_total=$summary['zero_rate'];
 $rigs=$summary['rigs'];
 
-$efficiency = ($rigs>0)? ($operating/($rigs*24))*100 : 0;
+$efficiency = ($rigs>0)?($operating/($rigs*24))*100:0;
 if($efficiency>100) $efficiency=100;
 
 
-/* ---------- STATUS BOARD ---------- */
+/* ---------------- STATUS ---------------- */
 
 $status=$conn->query("
 SELECT r1.rig,r1.status
 FROM rig_daily_log r1
-INNER JOIN
-(
+INNER JOIN (
 SELECT rig,MAX(date) maxdate
 FROM rig_daily_log
 GROUP BY rig
 ) r2
 ON r1.rig=r2.rig AND r1.date=r2.maxdate
-".($rig!=""?"WHERE r1.rig='$rig'":"")."
 ");
 
 
-/* ---------- ALERTS ---------- */
+/* ---------------- TREND ---------------- */
 
-function getAlerts($conn,$column,$rig){
-return $conn->query("
-SELECT rig,$column,date
-FROM rig_daily_log
-WHERE $column>0
-".($rig!=""?"AND rig='$rig'":"")."
-ORDER BY date DESC
-LIMIT 5
-");
-}
-
-$zeroAlerts=getAlerts($conn,"zero_rate_hours",$rig);
-$standbyAlerts=getAlerts($conn,"standby_hours",$rig);
-$breakdownAlerts=getAlerts($conn,"breakdown_hours",$rig);
-$ilmAlerts=getAlerts($conn,"ilm_hours",$rig);
-
-
-/* ---------- TREND ---------- */
-
-$perf=$conn->query("
+$trend=$conn->query("
 SELECT DATE(date) d,
 SUM(operating_hours) operating,
 SUM(standby_hours) standby,
-SUM(breakdown_hours) breakdown,
-SUM(ilm_hours) ilm,
-SUM(zero_rate_hours) zero_rate
+SUM(breakdown_hours) breakdown
 FROM rig_daily_log
 $whereSQL
 GROUP BY d
 ORDER BY d
 ");
 
-$dates=[];$oper=[];$standby=[];$breakdown=[];$ilm=[];$zero=[];
+$dates=[];$oper=[];$standby=[];$breakdown=[];
 
-while($r=$perf->fetch_assoc()){
+while($r=$trend->fetch_assoc()){
 $dates[]=$r['d'];
 $oper[]=$r['operating'];
 $standby[]=$r['standby'];
 $breakdown[]=$r['breakdown'];
-$ilm[]=$r['ilm'];
-$zero[]=$r['zero_rate'];
 }
 
 
-/* ---------- RIG COMPARISON ---------- */
+/* ---------------- RIG PERFORMANCE ---------------- */
 
 $rigPerf=$conn->query("
-SELECT rig,SUM(operating_hours) total_operating
+SELECT rig,SUM(operating_hours) hours
 FROM rig_daily_log
 $whereSQL
 GROUP BY rig
@@ -126,7 +100,7 @@ $rigNames=[];$rigHours=[];
 
 while($row=$rigPerf->fetch_assoc()){
 $rigNames[]=$row['rig'];
-$rigHours[]=$row['total_operating'];
+$rigHours[]=$row['hours'];
 }
 
 ?>
@@ -136,7 +110,7 @@ $rigHours[]=$row['total_operating'];
 
 <head>
 
-<title>Rig Monitoring Dashboard</title>
+<title>Oilfield Rig Monitoring Dashboard</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -144,26 +118,94 @@ $rigHours[]=$row['total_operating'];
 <style>
 
 body{
-background:#f4f6f9;
-font-family:Arial;
+margin:0;
+font-family:Segoe UI;
+background:#f3f5f9;
 }
 
-.main{
-margin-left:240px;
-padding:20px;
+/* HEADER */
+
+.topbar{
+height:60px;
+background:#0b3d6d;
+color:white;
+display:flex;
+align-items:center;
+padding:0 20px;
+font-weight:600;
 }
+
+/* SIDEBAR */
+
+.sidebar{
+width:220px;
+height:100vh;
+background:#1e293b;
+position:fixed;
+top:60px;
+left:0;
+padding-top:20px;
+}
+
+.sidebar a{
+display:block;
+color:#cbd5e1;
+padding:12px 20px;
+text-decoration:none;
+}
+
+.sidebar a:hover{
+background:#0ea5e9;
+color:white;
+}
+
+/* CONTENT */
+
+.main{
+margin-left:220px;
+margin-top:60px;
+padding:25px;
+}
+
+/* CARDS */
 
 .card-box{
 background:white;
 padding:20px;
 border-radius:10px;
-box-shadow:0 4px 10px rgba(0,0,0,0.1);
+box-shadow:0 4px 12px rgba(0,0,0,0.08);
 margin-bottom:20px;
 }
 
-.status-running{background:#28a745;color:white;padding:5px 10px;border-radius:6px;}
-.status-standby{background:#ffc107;padding:5px 10px;border-radius:6px;}
-.status-breakdown{background:#dc3545;color:white;padding:5px 10px;border-radius:6px;}
+.summary{
+text-align:center;
+}
+
+.summary h3{
+margin:5px 0;
+}
+
+/* STATUS */
+
+.status-running{
+background:#22c55e;
+color:white;
+padding:4px 10px;
+border-radius:6px;
+}
+
+.status-standby{
+background:#facc15;
+padding:4px 10px;
+border-radius:6px;
+}
+
+.status-breakdown{
+background:#ef4444;
+color:white;
+padding:4px 10px;
+border-radius:6px;
+}
 
 </style>
 
@@ -171,24 +213,40 @@ margin-bottom:20px;
 
 <body>
 
-<?php include "header.php"; ?>
-<?php include "sidebar.php"; ?>
+<div class="topbar">
+
+<img src="logo.png" height="35" style="margin-right:10px">
+
+Rig Operations Monitoring System
+
+</div>
+
+
+<div class="sidebar">
+
+<a href="dashboard.php">Dashboard</a>
+<a href="add_entry.php">Add Entry</a>
+<a href="report_daily.php">Daily Report</a>
+<a href="report_monthly.php">Monthly Report</a>
+<a href="alerts.php">Alerts</a>
+
+</div>
 
 
 <div class="main">
 
-<h3>Rig Operations Dashboard</h3>
+<h3>Rig Monitoring Dashboard</h3>
 
 <div class="mb-3">
 
-<a href="add_entry.php" class="btn btn-success">+ Add Entry</a>
+<a href="add_entry.php" class="btn btn-success">Add Entry</a>
 <a href="report_daily.php" class="btn btn-primary">Daily Report</a>
 <a href="report_monthly.php" class="btn btn-primary">Monthly Report</a>
 
 </div>
 
 
-<form method="GET" class="row g-2 mb-3">
+<form method="GET" class="row g-2 mb-4">
 
 <div class="col-md-3">
 
@@ -211,15 +269,50 @@ margin-bottom:20px;
 <select name="range" class="form-select" onchange="this.form.submit()">
 
 <option value="">All Time</option>
-<option value="today" <?=$range=='today'?'selected':''?>>Today</option>
-<option value="week" <?=$range=='week'?'selected':''?>>This Week</option>
-<option value="month" <?=$range=='month'?'selected':''?>>This Month</option>
+<option value="today">Today</option>
+<option value="week">This Week</option>
+<option value="month">This Month</option>
 
 </select>
 
 </div>
 
 </form>
+
+
+<!-- SUMMARY CARDS -->
+
+<div class="row">
+
+<div class="col-md-3">
+<div class="card-box summary">
+<h6>Total Rigs</h6>
+<h3><?=$rigs?></h3>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card-box summary">
+<h6>Operating Hours</h6>
+<h3><?=$operating?></h3>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card-box summary">
+<h6>Zero Rate</h6>
+<h3 style="color:red"><?=$zero_total?></h3>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card-box summary">
+<h6>Efficiency</h6>
+<h3><?=round($efficiency,1)?>%</h3>
+</div>
+</div>
+
+</div>
 
 
 <div class="row">
@@ -230,7 +323,7 @@ margin-bottom:20px;
 
 <h5>Rig Status Board</h5>
 
-<table class="table table-bordered">
+<table class="table">
 
 <tr>
 <th>Rig</th>
@@ -263,15 +356,13 @@ echo "<tr>
 </div>
 
 
-<div class="col-md-4">
+<div class="col-md-8">
 
-<div class="card-box text-center">
+<div class="card-box">
 
-<h5>Rig Efficiency</h5>
+<h5>Operational Trend</h5>
 
-<canvas id="effGauge"></canvas>
-
-<h4><?=round($efficiency,1)?>%</h4>
+<canvas id="trendChart"></canvas>
 
 </div>
 
@@ -282,42 +373,7 @@ echo "<tr>
 
 <div class="row">
 
-<?php
-function renderAlert($title,$result,$field,$color){
-echo "<div class='col-md-3'>
-<div class='card-box'>
-<h6>$title</h6>
-<table class='table table-sm'>
-<tr><th>Rig</th><th>Hours</th><th>Date</th></tr>";
-
-while($r=$result->fetch_assoc()){
-echo "<tr>
-<td>{$r['rig']}</td>
-<td style='color:$color'>{$r[$field]}</td>
-<td>{$r['date']}</td>
-</tr>";
-}
-
-echo "</table></div></div>";
-}
-
-renderAlert("Zero Rate Alerts",$zeroAlerts,"zero_rate_hours","red");
-renderAlert("Standby Alerts",$standbyAlerts,"standby_hours","#ffc107");
-renderAlert("Breakdown Alerts",$breakdownAlerts,"breakdown_hours","#dc3545");
-renderAlert("ILM Alerts",$ilmAlerts,"ilm_hours","#6f42c1");
-?>
-
-</div>
-
-
-<div class="card-box">
-
-<h5>Operational Trend</h5>
-
-<canvas id="perfChart"></canvas>
-
-</div>
-
+<div class="col-md-6">
 
 <div class="card-box">
 
@@ -327,6 +383,9 @@ renderAlert("ILM Alerts",$ilmAlerts,"ilm_hours","#6f42c1");
 
 </div>
 
+</div>
+
+<div class="col-md-6">
 
 <div class="card-box">
 
@@ -338,53 +397,32 @@ renderAlert("ILM Alerts",$ilmAlerts,"ilm_hours","#6f42c1");
 
 </div>
 
+</div>
+
+</div>
+
 
 <script>
 
-/* Efficiency Gauge */
+/* TREND */
 
-new Chart(document.getElementById('effGauge'),{
-
-type:'doughnut',
-
-data:{
-labels:['Efficiency','Remaining'],
-datasets:[{
-data:[<?=$efficiency?>,100-<?=$efficiency?>],
-backgroundColor:['#28a745','#e0e0e0']
-}]
-},
-
-options:{cutout:'70%',plugins:{legend:{display:false}}}
-
-});
-
-
-/* Operational Trend */
-
-new Chart(document.getElementById('perfChart'),{
+new Chart(document.getElementById('trendChart'),{
 
 type:'line',
 
 data:{
 labels: <?=json_encode($dates)?>,
-
 datasets:[
-
-{label:'Operating',data: <?=json_encode($oper)?>,borderColor:'#28a745',tension:0.3},
-{label:'Standby',data: <?=json_encode($standby)?>,borderColor:'#ffc107',tension:0.3},
-{label:'Breakdown',data: <?=json_encode($breakdown)?>,borderColor:'#dc3545',tension:0.3},
-{label:'ILM',data: <?=json_encode($ilm)?>,borderColor:'#6f42c1',tension:0.3},
-{label:'Zero Rate',data: <?=json_encode($zero)?>,borderColor:'#000',tension:0.3}
-
+{label:'Operating',data:<?=json_encode($oper)?>,borderColor:'#22c55e',tension:0.3},
+{label:'Standby',data:<?=json_encode($standby)?>,borderColor:'#facc15',tension:0.3},
+{label:'Breakdown',data:<?=json_encode($breakdown)?>,borderColor:'#ef4444',tension:0.3}
 ]
-
 }
 
 });
 
 
-/* Rig Comparison */
+/* RIG COMPARISON */
 
 new Chart(document.getElementById('rigChart'),{
 
@@ -395,14 +433,14 @@ labels: <?=json_encode($rigNames)?>,
 datasets:[{
 label:'Operating Hours',
 data: <?=json_encode($rigHours)?>,
-backgroundColor:'#007bff'
+backgroundColor:'#3b82f6'
 }]
 }
 
 });
 
 
-/* Downtime Analysis */
+/* DOWNTIME */
 
 new Chart(document.getElementById('downtimeChart'),{
 
@@ -412,7 +450,7 @@ data:{
 labels:['Standby','Breakdown','ILM'],
 datasets:[{
 data:[<?=$standby_total?>,<?=$breakdown_total?>,<?=$ilm_total?>],
-backgroundColor:['#ffc107','#dc3545','#6f42c1']
+backgroundColor:['#facc15','#ef4444','#9333ea']
 }]
 }
 
