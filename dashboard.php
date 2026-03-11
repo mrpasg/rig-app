@@ -1,26 +1,24 @@
-```php
 <?php
 include "config.php";
 
-/* FILTER BUILD */
+/* ---------------- FILTER BUILD ---------------- */
 
 $where=[];
 
-if(isset($_GET['range'])){
+$rig = $_GET['rig'] ?? '';
+$range = $_GET['range'] ?? '';
 
-if($_GET['range']=="today")
+if($range=="today")
 $where[]="date = CURDATE()";
 
-if($_GET['range']=="week")
-$where[]="YEARWEEK(date)=YEARWEEK(CURDATE())";
+if($range=="week")
+$where[]="YEARWEEK(date,1)=YEARWEEK(CURDATE(),1)";
 
-if($_GET['range']=="month")
-$where[]="MONTH(date)=MONTH(CURDATE())";
+if($range=="month")
+$where[]="MONTH(date)=MONTH(CURDATE()) AND YEAR(date)=YEAR(CURDATE())";
 
-}
-
-if(isset($_GET['rig']) && $_GET['rig']!=""){
-$rig=$conn->real_escape_string($_GET['rig']);
+if($rig!=""){
+$rig=$conn->real_escape_string($rig);
 $where[]="rig='$rig'";
 }
 
@@ -29,7 +27,7 @@ if(count($where)>0)
 $whereSQL="WHERE ".implode(" AND ",$where);
 
 
-/* SUMMARY */
+/* ---------------- SUMMARY ---------------- */
 
 $summary=$conn->query("
 SELECT
@@ -43,17 +41,19 @@ FROM rig_daily_log
 $whereSQL
 ")->fetch_assoc();
 
-$operating=$summary['operating'];
-$standby_total=$summary['standby'];
-$breakdown_total=$summary['breakdown'];
-$ilm_total=$summary['ilm'];
-$zero_total=$summary['zero_rate'];
-$rigs=$summary['rigs'];
+$operating=$summary['operating'] ?? 0;
+$standby_total=$summary['standby'] ?? 0;
+$breakdown_total=$summary['breakdown'] ?? 0;
+$ilm_total=$summary['ilm'] ?? 0;
+$zero_total=$summary['zero_rate'] ?? 0;
+$rigs=$summary['rigs'] ?? 0;
 
 $efficiency=($rigs>0)?($operating/($rigs*24))*100:0;
 
+if($efficiency>100) $efficiency=100;
 
-/* STATUS BOARD */
+
+/* ---------------- STATUS BOARD ---------------- */
 
 $status=$conn->query("
 SELECT r1.rig,r1.status
@@ -65,17 +65,17 @@ FROM rig_daily_log
 GROUP BY rig
 ) r2
 ON r1.rig=r2.rig AND r1.date=r2.maxdate
-".(isset($rig)?"WHERE r1.rig='$rig'":"")."
+".($rig!=""?"WHERE r1.rig='$rig'":"")."
 ");
 
 
-/* ALERT PANELS */
+/* ---------------- ALERT PANELS ---------------- */
 
 $zeroAlerts=$conn->query("
 SELECT rig,zero_rate_hours,date
 FROM rig_daily_log
 WHERE zero_rate_hours>0
-".(isset($rig)?"AND rig='$rig'":"")."
+".($rig!=""?"AND rig='$rig'":"")."
 ORDER BY date DESC
 LIMIT 5
 ");
@@ -84,7 +84,7 @@ $standbyAlerts=$conn->query("
 SELECT rig,standby_hours,date
 FROM rig_daily_log
 WHERE standby_hours>0
-".(isset($rig)?"AND rig='$rig'":"")."
+".($rig!=""?"AND rig='$rig'":"")."
 ORDER BY date DESC
 LIMIT 5
 ");
@@ -93,7 +93,7 @@ $breakdownAlerts=$conn->query("
 SELECT rig,breakdown_hours,date
 FROM rig_daily_log
 WHERE breakdown_hours>0
-".(isset($rig)?"AND rig='$rig'":"")."
+".($rig!=""?"AND rig='$rig'":"")."
 ORDER BY date DESC
 LIMIT 5
 ");
@@ -102,13 +102,13 @@ $ilmAlerts=$conn->query("
 SELECT rig,ilm_hours,date
 FROM rig_daily_log
 WHERE ilm_hours>0
-".(isset($rig)?"AND rig='$rig'":"")."
+".($rig!=""?"AND rig='$rig'":"")."
 ORDER BY date DESC
 LIMIT 5
 ");
 
 
-/* PERFORMANCE TREND */
+/* ---------------- PERFORMANCE TREND ---------------- */
 
 $perf=$conn->query("
 SELECT DATE(date) d,
@@ -137,7 +137,7 @@ $zero[]=$r['zero_rate'];
 }
 
 
-/* RIG PERFORMANCE */
+/* ---------------- RIG PERFORMANCE ---------------- */
 
 $rigPerf=$conn->query("
 SELECT rig,SUM(operating_hours) total_operating
@@ -162,22 +162,55 @@ $rigHours[]=$row['total_operating'];
 
 <title>Rig Operations Dashboard</title>
 
-<link rel="stylesheet" href="style.css">
-
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+background:#f4f6f9;
+font-family:Arial;
+}
+
+.card-box{
+background:white;
+padding:20px;
+border-radius:10px;
+box-shadow:0 4px 10px rgba(0,0,0,0.1);
+margin-bottom:20px;
+}
+
+.status-running{
+background:#28a745;
+color:white;
+padding:4px 10px;
+border-radius:6px;
+}
+
+.status-standby{
+background:#ffc107;
+padding:4px 10px;
+border-radius:6px;
+}
+
+.status-breakdown{
+background:#dc3545;
+color:white;
+padding:4px 10px;
+border-radius:6px;
+}
+
+</style>
 
 </head>
 
 <body>
 
-<?php include "header.php"; ?>
-<?php include "sidebar.php"; ?>
-
-<div class="main">
+<div class="container mt-4">
 
 <h3>Rig Operations Dashboard</h3>
+
 
 <form method="GET" class="row g-2 mb-3">
 
@@ -187,11 +220,11 @@ $rigHours[]=$row['total_operating'];
 
 <option value="">All Rigs</option>
 
-<option value="PPE-1">PPE-1</option>
-<option value="PPE-2">PPE-2</option>
-<option value="PPE-3">PPE-3</option>
-<option value="PPE-4">PPE-4</option>
-<option value="PPE-5">PPE-5</option>
+<option value="PPE-1" <?=$rig=='PPE-1'?'selected':''?>>PPE-1</option>
+<option value="PPE-2" <?=$rig=='PPE-2'?'selected':''?>>PPE-2</option>
+<option value="PPE-3" <?=$rig=='PPE-3'?'selected':''?>>PPE-3</option>
+<option value="PPE-4" <?=$rig=='PPE-4'?'selected':''?>>PPE-4</option>
+<option value="PPE-5" <?=$rig=='PPE-5'?'selected':''?>>PPE-5</option>
 
 </select>
 
@@ -202,9 +235,9 @@ $rigHours[]=$row['total_operating'];
 <select name="range" class="form-select" onchange="this.form.submit()">
 
 <option value="">All Time</option>
-<option value="today">Today</option>
-<option value="week">This Week</option>
-<option value="month">This Month</option>
+<option value="today" <?=$range=='today'?'selected':''?>>Today</option>
+<option value="week" <?=$range=='week'?'selected':''?>>This Week</option>
+<option value="month" <?=$range=='month'?'selected':''?>>This Month</option>
 
 </select>
 
@@ -275,7 +308,9 @@ echo "<tr>
 <div class="col-md-3">
 <div class="card-box">
 <h6>Zero Rate Alerts</h6>
+
 <table class="table table-sm">
+
 <tr><th>Rig</th><th>Zero</th><th>Date</th></tr>
 
 <?php while($r=$zeroAlerts->fetch_assoc()){
@@ -287,13 +322,17 @@ echo "<tr>
 } ?>
 
 </table>
+
 </div>
 </div>
+
 
 <div class="col-md-3">
 <div class="card-box">
 <h6>Standby Alerts</h6>
+
 <table class="table table-sm">
+
 <tr><th>Rig</th><th>Standby</th><th>Date</th></tr>
 
 <?php while($r=$standbyAlerts->fetch_assoc()){
@@ -305,13 +344,17 @@ echo "<tr>
 } ?>
 
 </table>
+
 </div>
 </div>
+
 
 <div class="col-md-3">
 <div class="card-box">
 <h6>Breakdown Alerts</h6>
+
 <table class="table table-sm">
+
 <tr><th>Rig</th><th>Breakdown</th><th>Date</th></tr>
 
 <?php while($r=$breakdownAlerts->fetch_assoc()){
@@ -323,13 +366,17 @@ echo "<tr>
 } ?>
 
 </table>
+
 </div>
 </div>
+
 
 <div class="col-md-3">
 <div class="card-box">
 <h6>ILM Alerts</h6>
+
 <table class="table table-sm">
+
 <tr><th>Rig</th><th>ILM</th><th>Date</th></tr>
 
 <?php while($r=$ilmAlerts->fetch_assoc()){
@@ -341,6 +388,7 @@ echo "<tr>
 } ?>
 
 </table>
+
 </div>
 </div>
 
@@ -352,10 +400,12 @@ echo "<tr>
 <canvas id="perfChart"></canvas>
 </div>
 
+
 <div class="card-box">
 <h5>Rig Performance Comparison</h5>
 <canvas id="rigChart"></canvas>
 </div>
+
 
 <div class="card-box">
 <h5>Downtime Cause Analysis</h5>
@@ -367,7 +417,7 @@ echo "<tr>
 
 <script>
 
-/* Efficiency Gauge */
+/* Efficiency */
 
 new Chart(document.getElementById('effGauge'),{
 
@@ -386,7 +436,7 @@ options:{cutout:'70%',plugins:{legend:{display:false}}}
 });
 
 
-/* Operational Trend */
+/* Trend */
 
 new Chart(document.getElementById('perfChart'),{
 
@@ -397,11 +447,11 @@ labels: <?php echo json_encode($dates); ?>,
 
 datasets:[
 
-{label:'Operating',data: <?php echo json_encode($oper); ?>,borderColor:'#28a745'},
-{label:'Standby',data: <?php echo json_encode($standby); ?>,borderColor:'#ffc107'},
-{label:'Breakdown',data: <?php echo json_encode($breakdown); ?>,borderColor:'#dc3545'},
-{label:'ILM',data: <?php echo json_encode($ilm); ?>,borderColor:'#6f42c1'},
-{label:'Zero Rate',data: <?php echo json_encode($zero); ?>,borderColor:'#000'}
+{label:'Operating',data: <?php echo json_encode($oper); ?>,borderColor:'#28a745',tension:0.3},
+{label:'Standby',data: <?php echo json_encode($standby); ?>,borderColor:'#ffc107',tension:0.3},
+{label:'Breakdown',data: <?php echo json_encode($breakdown); ?>,borderColor:'#dc3545',tension:0.3},
+{label:'ILM',data: <?php echo json_encode($ilm); ?>,borderColor:'#6f42c1',tension:0.3},
+{label:'Zero Rate',data: <?php echo json_encode($zero); ?>,borderColor:'#000',tension:0.3}
 
 ]
 
@@ -452,4 +502,3 @@ backgroundColor:['#ffc107','#dc3545','#6f42c1']
 
 </body>
 </html>
-```
