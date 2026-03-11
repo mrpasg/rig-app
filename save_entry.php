@@ -10,6 +10,20 @@ include "config.php";
 $date = $_POST['date'] ?? '';
 $rig = $_POST['rig'] ?? '';
 
+/* DATE VALIDATION (NO FUTURE DATE) */
+
+$today = date('Y-m-d');
+
+if($date > $today){
+
+echo "<h3 style='color:red'>Error: Future dates are not allowed.</h3>";
+echo "<br><a href='add_entry.php'>Go Back</a>";
+exit;
+
+}
+
+/* HOURS INPUT */
+
 $operating = $_POST['operating'] ?? 0;
 $standby = $_POST['standby'] ?? 0;
 $breakdown = $_POST['breakdown'] ?? 0;
@@ -19,7 +33,6 @@ $zero = $_POST['zero'] ?? 0;
 $reason = $_POST['reason'] ?? '';
 $status = $_POST['status'] ?? '';
 
-
 /* CONVERT TO NUMBERS */
 
 $operating = floatval($operating);
@@ -27,7 +40,6 @@ $standby = floatval($standby);
 $breakdown = floatval($breakdown);
 $ilm = floatval($ilm);
 $zero = floatval($zero);
-
 
 /* TOTAL HOURS CHECK */
 
@@ -40,7 +52,6 @@ echo "<br><a href='add_entry.php'>Go Back</a>";
 exit;
 
 }
-
 
 /* DUPLICATE CHECK */
 
@@ -57,7 +68,6 @@ echo "<br><a href='add_entry.php'>Go Back</a>";
 exit;
 
 }
-
 
 /* INSERT DATA */
 

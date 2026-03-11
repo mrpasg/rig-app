@@ -66,8 +66,11 @@ font-size:16px;
 
 <div class="col-md-4 mb-3">
 <label>Date</label>
-<input type="date" name="date" class="form-control"
-value="<?php echo date('Y-m-d'); ?>" required>
+<input type="date" name="date"
+class="form-control"
+value="<?php echo date('Y-m-d'); ?>"
+max="<?php echo date('Y-m-d'); ?>"
+required>
 </div>
 
 <div class="col-md-4 mb-3">
@@ -86,7 +89,7 @@ value="<?php echo date('Y-m-d'); ?>" required>
 
 <div class="col-md-4 mb-3">
 <label>Status</label>
-<select name="status" class="form-control">
+<select name="status" id="status" class="form-control">
 
 <option value="Running">Running</option>
 <option value="Standby">Standby</option>
@@ -166,6 +169,7 @@ Cancel
 
 </div>
 
+
 <script>
 
 function calculateTotal(){
@@ -183,9 +187,10 @@ let remainingDisplay = document.getElementById("remaining");
 
 totalDisplay.innerText = total.toFixed(2);
 
-let remaining = 24 - total;
-
+let remaining = Math.max(0, 24 - total);
 remainingDisplay.innerText = remaining.toFixed(2);
+
+/* color change */
 
 if(total > 24){
 totalDisplay.style.color = "red";
@@ -195,7 +200,22 @@ totalDisplay.style.color = "#0d6efd";
 remainingDisplay.style.color = "#198754";
 }
 
+/* auto status */
+
+let status = document.getElementById("status");
+
+if(operating > 0){
+status.value = "Running";
 }
+else if(breakdown > 0){
+status.value = "Breakdown";
+}
+else if(standby > 0){
+status.value = "Standby";
+}
+
+}
+
 
 document.addEventListener("DOMContentLoaded", function(){
 
