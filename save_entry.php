@@ -1,5 +1,8 @@
 <?php
 
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 include "config.php";
 
 /* RECEIVE FORM DATA */
@@ -16,29 +19,25 @@ $zero = $_POST['zero'] ?? 0;
 $reason = $_POST['reason'] ?? '';
 $status = $_POST['status'] ?? '';
 
-/* SANITIZE INPUT */
 
-$date = $conn->real_escape_string($date);
-$rig = $conn->real_escape_string($rig);
-$reason = $conn->real_escape_string($reason);
-$status = $conn->real_escape_string($status);
+/* CONVERT TO NUMBERS */
 
-/* PREVENT NEGATIVE VALUES */
-
-$operating = max(0, $operating);
-$standby = max(0, $standby);
-$breakdown = max(0, $breakdown);
-$ilm = max(0, $ilm);
-$zero = max(0, $zero);
+$operating = floatval($operating);
+$standby = floatval($standby);
+$breakdown = floatval($breakdown);
+$ilm = floatval($ilm);
+$zero = floatval($zero);
 
 
-/* HOURS VALIDATION */
+/* TOTAL HOURS CHECK */
 
 $total_hours = $operating + $standby + $breakdown + $ilm + $zero;
 
 if($total_hours > 24){
 
-die("<h3 style='color:red'>Error: Total hours cannot exceed 24 hours</h3>");
+echo "<h3 style='color:red'>Error: Total hours cannot exceed 24 hours.</h3>";
+echo "<br><a href='add_entry.php'>Go Back</a>";
+exit;
 
 }
 
@@ -53,12 +52,16 @@ WHERE rig='$rig' AND date='$date'
 
 if($check->num_rows > 0){
 
-die("<h3 style='color:red'>Error: Entry already exists for this rig and date</h3>");
+echo "<h3 style='color:red'>Error: Entry already exists for this rig and date.</h3>";
+echo "<br><a href='add_entry.php'>Go Back</a>";
+exit;
 
 }
 
 
 /* INSERT DATA */
+
+try{
 
 $sql = "
 INSERT INTO rig_daily_log
@@ -67,14 +70,30 @@ VALUES
 ('$date','$rig','$operating','$standby','$breakdown','$ilm','$zero','$reason','$status')
 ";
 
-if($conn->query($sql)){
+$conn->query($sql);
 
 header("Location: dashboard.php");
 exit;
 
-}else{
+}
 
-echo "Database Error: ".$conn->error;
+catch(mysqli_sql_exception $e){
+
+echo "<h3 style='color:red'>Database Error</h3>";
+
+if(strpos($e->getMessage(),'hours_limit') !== false){
+echo "Total hours cannot exceed 24.";
+}
+
+elseif(strpos($e->getMessage(),'unique_rig_date') !== false){
+echo "Duplicate entry for this rig and date.";
+}
+
+else{
+echo $e->getMessage();
+}
+
+echo "<br><br><a href='add_entry.php'>Go Back</a>";
 
 }
 
