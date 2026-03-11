@@ -1,3 +1,4 @@
+```php
 <?php
 include "config.php";
 
@@ -131,6 +132,22 @@ while($row=$rigPerf->fetch_assoc()){
 $rigNames[]=$row['rig'];
 $rigHours[]=$row['total_operating'];
 }
+
+
+/* DOWNTIME CAUSE ANALYSIS */
+
+$downtime=$conn->query("
+SELECT
+SUM(standby_hours) standby,
+SUM(breakdown_hours) breakdown,
+SUM(ilm_hours) ilm
+FROM rig_daily_log
+$whereSQL
+")->fetch_assoc();
+
+$standby_total=$downtime['standby'];
+$breakdown_total=$downtime['breakdown'];
+$ilm_total=$downtime['ilm'];
 
 ?>
 
@@ -321,9 +338,19 @@ echo "<tr>
 
 </div>
 
+<div class="card-box">
+
+<h5>Downtime Cause Analysis</h5>
+
+<canvas id="downtimeChart"></canvas>
+
+</div>
+
 </div>
 
 <script>
+
+/* Efficiency Gauge */
 
 new Chart(document.getElementById('effGauge'),{
 type:'doughnut',
@@ -338,6 +365,8 @@ options:{cutout:'70%',plugins:{legend:{display:false}}}
 });
 
 
+/* Operational Trend */
+
 new Chart(document.getElementById('perfChart'),{
 
 type:'line',
@@ -347,40 +376,11 @@ labels: <?php echo json_encode($dates); ?>,
 
 datasets:[
 
-{
-label:'Operating',
-data: <?php echo json_encode($oper); ?>,
-borderColor:'#28a745',
-fill:false
-},
-
-{
-label:'Standby',
-data: <?php echo json_encode($standby); ?>,
-borderColor:'#ffc107',
-fill:false
-},
-
-{
-label:'Breakdown',
-data: <?php echo json_encode($breakdown); ?>,
-borderColor:'#dc3545',
-fill:false
-},
-
-{
-label:'ILM',
-data: <?php echo json_encode($ilm); ?>,
-borderColor:'#6f42c1',
-fill:false
-},
-
-{
-label:'Zero Rate',
-data: <?php echo json_encode($zero_arr); ?>,
-borderColor:'#000000',
-fill:false
-}
+{label:'Operating',data: <?php echo json_encode($oper); ?>,borderColor:'#28a745',fill:false},
+{label:'Standby',data: <?php echo json_encode($standby); ?>,borderColor:'#ffc107',fill:false},
+{label:'Breakdown',data: <?php echo json_encode($breakdown); ?>,borderColor:'#dc3545',fill:false},
+{label:'ILM',data: <?php echo json_encode($ilm); ?>,borderColor:'#6f42c1',fill:false},
+{label:'Zero Rate',data: <?php echo json_encode($zero_arr); ?>,borderColor:'#000000',fill:false}
 
 ]
 
@@ -388,6 +388,8 @@ fill:false
 
 });
 
+
+/* Rig Comparison */
 
 new Chart(document.getElementById('rigChart'),{
 
@@ -404,7 +406,38 @@ backgroundColor:'#007bff'
 
 });
 
+
+/* Downtime Pie Chart */
+
+new Chart(document.getElementById('downtimeChart'),{
+
+type:'pie',
+
+data:{
+labels:['Standby','Breakdown','ILM'],
+
+datasets:[{
+
+data:[
+<?php echo $standby_total; ?>,
+<?php echo $breakdown_total; ?>,
+<?php echo $ilm_total; ?>
+],
+
+backgroundColor:[
+'#ffc107',
+'#dc3545',
+'#6f42c1'
+]
+
+}]
+
+}
+
+});
+
 </script>
 
 </body>
 </html>
+```
