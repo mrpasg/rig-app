@@ -128,9 +128,19 @@ text-align:center;
 
 <div class='header'>
 
-<img src='logo.png' height='50'>
+$logo = __DIR__ . "/logo.png";
+
+$html.="
+
+<div style='text-align:center'>
+
+<img src='$logo' height='60'>
 
 <h2>Rig Operations Daily Report</h2>
+
+</div>
+
+";
 
 </div>
 
