@@ -1,4 +1,4 @@
-<?php
+Adding “Yesterday” next to Today is extremely useful for rig operations review meetings<?php
 error_reporting(E_ALL);
 ini_set('display_errors',1);
 
@@ -13,6 +13,9 @@ $where=[];
 
 if($range=="today")
 $where[]="date = CURDATE()";
+
+if($range=="yesterday")
+$where[]="date = CURDATE() - INTERVAL 1 DAY";
 
 if($range=="week")
 $where[]="YEARWEEK(date,1)=YEARWEEK(CURDATE(),1)";
@@ -85,12 +88,14 @@ $ilm=[];
 $zero=[];
 
 while($trend && $r=$trend->fetch_assoc()){
+
 $dates[]=$r['d'];
 $oper[]=$r['operating'];
 $standby[]=$r['standby'];
 $breakdown[]=$r['breakdown'];
 $ilm[]=$r['ilm'];
 $zero[]=$r['zero_rate'];
+
 }
 
 
@@ -110,6 +115,7 @@ while($rigPerf && $row=$rigPerf->fetch_assoc()){
 $rigNames[]=$row['rig'];
 $rigHours[]=$row['hours'];
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -191,9 +197,13 @@ margin:5px 0;
 <body>
 
 <div class="topbar">
+
 <img src="logo.png" height="35" style="margin-right:10px">
-KRISS DRILLING PVT.LTD.
+
+KRISS DRILLING PVT. LTD.
+
 </div>
+
 
 <div class="sidebar">
 
@@ -219,6 +229,41 @@ KRISS DRILLING PVT.LTD.
 <a href="report_monthly.php" class="btn btn-primary">Monthly Report</a>
 
 </div>
+
+
+<form method="GET" class="row g-2 mb-4">
+
+<div class="col-md-3">
+
+<select name="rig" class="form-select" onchange="this.form.submit()">
+
+<option value="">All Rigs</option>
+
+<option value="PPE-1" <?=$rig=='PPE-1'?'selected':''?>>PPE-1</option>
+<option value="PPE-2" <?=$rig=='PPE-2'?'selected':''?>>PPE-2</option>
+<option value="PPE-3" <?=$rig=='PPE-3'?'selected':''?>>PPE-3</option>
+<option value="PPE-4" <?=$rig=='PPE-4'?'selected':''?>>PPE-4</option>
+<option value="PPE-5" <?=$rig=='PPE-5'?'selected':''?>>PPE-5</option>
+
+</select>
+
+</div>
+
+<div class="col-md-3">
+
+<select name="range" class="form-select" onchange="this.form.submit()">
+
+<option value="">All Time</option>
+<option value="today" <?=$range=='today'?'selected':''?>>Today</option>
+<option value="yesterday" <?=$range=='yesterday'?'selected':''?>>Yesterday</option>
+<option value="week" <?=$range=='week'?'selected':''?>>Weekly</option>
+<option value="month" <?=$range=='month'?'selected':''?>>Monthly</option>
+
+</select>
+
+</div>
+
+</form>
 
 
 <!-- FLEET CARDS -->
@@ -256,6 +301,8 @@ KRISS DRILLING PVT.LTD.
 </div>
 
 
+<!-- OPERATIONAL TREND -->
+
 <div class="card-box">
 
 <h5>Operational Trend</h5>
@@ -264,6 +311,8 @@ KRISS DRILLING PVT.LTD.
 
 </div>
 
+
+<!-- BOTTOM CHARTS -->
 
 <div class="row">
 
