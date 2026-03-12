@@ -71,7 +71,6 @@ FROM rig_daily_log r1
 INNER JOIN (
 SELECT rig,MAX(date) maxdate
 FROM rig_daily_log
-$whereSQL
 GROUP BY rig
 ) r2
 ON r1.rig=r2.rig AND r1.date=r2.maxdate
@@ -82,10 +81,11 @@ ON r1.rig=r2.rig AND r1.date=r2.maxdate
 
 $trend=$conn->query("
 SELECT DATE(date) d,
-SUM(operating_hours) operating,
-SUM(standby_hours) standby,
-SUM(breakdown_hours) breakdown,
-SUM(ilm_hours) ilm
+COALESCE(SUM(operating_hours),0) operating,
+COALESCE(SUM(standby_hours),0) standby,
+COALESCE(SUM(breakdown_hours),0) breakdown,
+COALESCE(SUM(ilm_hours),0) ilm,
+COALESCE(SUM(zero_rate_hours),0) zero_rate
 FROM rig_daily_log
 $whereSQL
 GROUP BY d
@@ -97,6 +97,7 @@ $oper=[];
 $standby=[];
 $breakdown=[];
 $ilm=[];
+$zero=[];
 
 while($trend && $r=$trend->fetch_assoc()){
 
@@ -105,6 +106,7 @@ $oper[]=$r['operating'];
 $standby[]=$r['standby'];
 $breakdown[]=$r['breakdown'];
 $ilm[]=$r['ilm'];
+$zero[]=$r['zero_rate'];
 
 }
 
@@ -112,7 +114,7 @@ $ilm[]=$r['ilm'];
 /* ---------------- RIG PERFORMANCE ---------------- */
 
 $rigPerf=$conn->query("
-SELECT rig,SUM(operating_hours) hours
+SELECT rig,COALESCE(SUM(operating_hours),0) hours
 FROM rig_daily_log
 $whereSQL
 GROUP BY rig
@@ -234,6 +236,7 @@ Rig Operations Monitoring System
 
 </div>
 
+
 <div class="sidebar">
 
 <a href="dashboard.php">Dashboard</a>
@@ -292,122 +295,11 @@ Rig Operations Monitoring System
 </form>
 
 
-<div class="row">
-
-<div class="col-md-3">
-<div class="card-box summary">
-<h6>Total Rigs</h6>
-<h3><?=$rigs?></h3>
-</div>
-</div>
-
-<div class="col-md-3">
-<div class="card-box summary">
-<h6>Operating Hours</h6>
-<h3><?=$operating?></h3>
-</div>
-</div>
-
-<div class="col-md-3">
-<div class="card-box summary">
-<h6>Zero Rate</h6>
-<h3 style="color:red"><?=$zero_total?></h3>
-</div>
-</div>
-
-<div class="col-md-3">
-<div class="card-box summary">
-<h6>Efficiency</h6>
-<h3><?=round($efficiency,1)?>%</h3>
-</div>
-</div>
-
-</div>
-
-
-<div class="row">
-
-<div class="col-md-4">
-
-<div class="card-box">
-
-<h5>Rig Status Board</h5>
-
-<table class="table">
-
-<tr>
-<th>Rig</th>
-<th>Status</th>
-</tr>
-
-<?php
-
-while($status && $row=$status->fetch_assoc()){
-
-$cls='';
-
-if($row['status']=="Running") $cls="status-running";
-if($row['status']=="Standby") $cls="status-standby";
-if($row['status']=="Breakdown") $cls="status-breakdown";
-
-echo "<tr>
-<td>{$row['rig']}</td>
-<td><span class='$cls'>{$row['status']}</span></td>
-</tr>";
-
-}
-
-?>
-
-</table>
-
-</div>
-
-</div>
-
-
-<div class="col-md-8">
-
 <div class="card-box">
 
 <h5>Operational Trend</h5>
 
 <canvas id="trendChart"></canvas>
-
-</div>
-
-</div>
-
-</div>
-
-
-<div class="row">
-
-<div class="col-md-6">
-
-<div class="card-box">
-
-<h5>Rig Performance Comparison</h5>
-
-<canvas id="rigChart"></canvas>
-
-</div>
-
-</div>
-
-<div class="col-md-6">
-
-<div class="card-box">
-
-<h5>Downtime Cause Analysis</h5>
-
-<canvas id="downtimeChart"></canvas>
-
-</div>
-
-</div>
-
-</div>
 
 </div>
 
@@ -424,39 +316,9 @@ datasets:[
 {label:'Operating',data:<?=json_encode($oper)?>,borderColor:'#22c55e',tension:0.3},
 {label:'Standby',data:<?=json_encode($standby)?>,borderColor:'#facc15',tension:0.3},
 {label:'Breakdown',data:<?=json_encode($breakdown)?>,borderColor:'#ef4444',tension:0.3},
-{label:'ILM',data:<?=json_encode($ilm)?>,borderColor:'#9333ea',tension:0.3}
+{label:'ILM',data:<?=json_encode($ilm)?>,borderColor:'#9333ea',tension:0.3},
+{label:'Zero Rate',data:<?=json_encode($zero)?>,borderColor:'#000000',tension:0.3}
 ]
-}
-
-});
-
-
-new Chart(document.getElementById('rigChart'),{
-
-type:'bar',
-
-data:{
-labels: <?=json_encode($rigNames)?>,
-datasets:[{
-label:'Operating Hours',
-data: <?=json_encode($rigHours)?>,
-backgroundColor:'#3b82f6'
-}]
-}
-
-});
-
-
-new Chart(document.getElementById('downtimeChart'),{
-
-type:'pie',
-
-data:{
-labels:['Standby','Breakdown','ILM'],
-datasets:[{
-data:[<?=$standby_total?>,<?=$breakdown_total?>,<?=$ilm_total?>],
-backgroundColor:['#facc15','#ef4444','#9333ea']
-}]
 }
 
 });
