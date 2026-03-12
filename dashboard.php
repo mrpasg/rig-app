@@ -60,32 +60,17 @@ $rigs=$summary['rigs'];
 
 $efficiency = ($rigs>0)?($operating/($rigs*24))*100:0;
 if($efficiency>100) $efficiency=100;
-if($efficiency<0) $efficiency=0;
-
-
-/* ---------------- STATUS ---------------- */
-
-$status=$conn->query("
-SELECT r1.rig,r1.status
-FROM rig_daily_log r1
-INNER JOIN (
-SELECT rig,MAX(date) maxdate
-FROM rig_daily_log
-GROUP BY rig
-) r2
-ON r1.rig=r2.rig AND r1.date=r2.maxdate
-");
 
 
 /* ---------------- TREND ---------------- */
 
 $trend=$conn->query("
 SELECT DATE(date) d,
-COALESCE(SUM(operating_hours),0) operating,
-COALESCE(SUM(standby_hours),0) standby,
-COALESCE(SUM(breakdown_hours),0) breakdown,
-COALESCE(SUM(ilm_hours),0) ilm,
-COALESCE(SUM(zero_rate_hours),0) zero_rate
+SUM(operating_hours) operating,
+SUM(standby_hours) standby,
+SUM(breakdown_hours) breakdown,
+SUM(ilm_hours) ilm,
+SUM(zero_rate_hours) zero_rate
 FROM rig_daily_log
 $whereSQL
 GROUP BY d
@@ -114,7 +99,7 @@ $zero[]=$r['zero_rate'];
 /* ---------------- RIG PERFORMANCE ---------------- */
 
 $rigPerf=$conn->query("
-SELECT rig,COALESCE(SUM(operating_hours),0) hours
+SELECT rig,SUM(operating_hours) hours
 FROM rig_daily_log
 $whereSQL
 GROUP BY rig
@@ -135,7 +120,7 @@ $rigHours[]=$row['hours'];
 
 <head>
 
-<title>Oilfield Rig Monitoring Dashboard</title>
+<title>Rig Operations Dashboard</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -200,26 +185,6 @@ text-align:center;
 
 .summary h3{
 margin:5px 0;
-}
-
-.status-running{
-background:#22c55e;
-color:white;
-padding:4px 10px;
-border-radius:6px;
-}
-
-.status-standby{
-background:#facc15;
-padding:4px 10px;
-border-radius:6px;
-}
-
-.status-breakdown{
-background:#ef4444;
-color:white;
-padding:4px 10px;
-border-radius:6px;
 }
 
 </style>
@@ -295,11 +260,81 @@ Rig Operations Monitoring System
 </form>
 
 
+<!-- FLEET CARDS -->
+
+<div class="row">
+
+<div class="col-md-3">
+<div class="card-box summary">
+<h6>Total Rigs</h6>
+<h3><?=$rigs?></h3>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card-box summary">
+<h6>Operating Hours</h6>
+<h3><?=$operating?></h3>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card-box summary">
+<h6>Zero Rate</h6>
+<h3 style="color:red"><?=$zero_total?></h3>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card-box summary">
+<h6>Efficiency</h6>
+<h3><?=round($efficiency,1)?>%</h3>
+</div>
+</div>
+
+</div>
+
+
+<!-- OPERATIONAL TREND -->
+
 <div class="card-box">
 
 <h5>Operational Trend</h5>
 
 <canvas id="trendChart"></canvas>
+
+</div>
+
+
+<!-- BOTTOM CHARTS -->
+
+<div class="row">
+
+<div class="col-md-6">
+
+<div class="card-box">
+
+<h5>Rig Performance Comparison</h5>
+
+<canvas id="rigChart"></canvas>
+
+</div>
+
+</div>
+
+<div class="col-md-6">
+
+<div class="card-box">
+
+<h5>Downtime Cause Analysis</h5>
+
+<canvas id="downtimeChart"></canvas>
+
+</div>
+
+</div>
+
+</div>
 
 </div>
 
@@ -319,6 +354,37 @@ datasets:[
 {label:'ILM',data:<?=json_encode($ilm)?>,borderColor:'#9333ea',tension:0.3},
 {label:'Zero Rate',data:<?=json_encode($zero)?>,borderColor:'#000000',tension:0.3}
 ]
+}
+
+});
+
+
+new Chart(document.getElementById('rigChart'),{
+
+type:'bar',
+
+data:{
+labels: <?=json_encode($rigNames)?>,
+datasets:[{
+label:'Operating Hours',
+data: <?=json_encode($rigHours)?>,
+backgroundColor:'#3b82f6'
+}]
+}
+
+});
+
+
+new Chart(document.getElementById('downtimeChart'),{
+
+type:'pie',
+
+data:{
+labels:['Standby','Breakdown','ILM'],
+datasets:[{
+data:[<?=$standby_total?>,<?=$breakdown_total?>,<?=$ilm_total?>],
+backgroundColor:['#facc15','#ef4444','#9333ea']
+}]
 }
 
 });
