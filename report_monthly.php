@@ -1,22 +1,47 @@
 <?php
 include "config.php";
 
-$result = $conn->query("
-SELECT 
-DATE_FORMAT(date,'%Y-%m') AS month,
-SUM(operating_hours) AS operating,
-SUM(standby_hours) AS standby,
-SUM(breakdown_hours) AS breakdown,
-SUM(ilm_hours) AS ilm,
-SUM(zero_rate_hours) AS zero_rate
+/* MONTH FILTER */
+
+$month = $_GET['month'] ?? date('Y-m');
+
+$start = date("Y-m-01", strtotime($month));
+$end   = date("Y-m-t", strtotime($month));
+
+/* SUMMARY */
+
+$summary=$conn->query("
+SELECT
+SUM(operating_hours) operating,
+SUM(standby_hours) standby,
+SUM(breakdown_hours) breakdown,
+SUM(ilm_hours) ilm,
+SUM(zero_rate_hours) zero_rate,
+COUNT(DISTINCT rig) rigs
 FROM rig_daily_log
-GROUP BY DATE_FORMAT(date,'%Y-%m')
-ORDER BY month DESC
+WHERE date BETWEEN '$start' AND '$end'
+")->fetch_assoc();
+
+$operating=$summary['operating'] ?? 0;
+$standby=$summary['standby'] ?? 0;
+$breakdown=$summary['breakdown'] ?? 0;
+$ilm=$summary['ilm'] ?? 0;
+$zero=$summary['zero_rate'] ?? 0;
+$rigs=$summary['rigs'] ?? 0;
+
+$days=date('t',strtotime($month));
+
+$efficiency = ($rigs>0)?($operating/($rigs*24*$days))*100:0;
+
+/* TABLE DATA */
+
+$result=$conn->query("
+SELECT *
+FROM rig_daily_log
+WHERE date BETWEEN '$start' AND '$end'
+ORDER BY date DESC
 ");
 
-$months=[];
-$operating=[];
-$zero=[];
 ?>
 
 <!DOCTYPE html>
@@ -27,22 +52,25 @@ $zero=[];
 <title>Monthly Rig Report</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 
 body{
 background:#f4f6f9;
-font-family:Arial;
+font-family:Segoe UI;
 }
 
 .card-box{
 background:white;
 padding:20px;
-border-radius:8px;
-box-shadow:0 2px 8px rgba(0,0,0,0.1);
+border-radius:10px;
+box-shadow:0 4px 12px rgba(0,0,0,0.08);
 margin-bottom:20px;
+}
+
+.summary-card{
+text-align:center;
 }
 
 </style>
@@ -55,23 +83,102 @@ margin-bottom:20px;
 
 <h3>Monthly Rig Performance</h3>
 
-<hr>
-
 <a href="dashboard.php" class="btn btn-secondary btn-sm">Dashboard</a>
-<a href="add_entry.php" class="btn btn-primary btn-sm">Add Entry</a>
-<a href="report_daily.php" class="btn btn-outline-primary btn-sm">Daily Report</a>
-<a href="alerts.php" class="btn btn-danger btn-sm">Zero Rate Alerts</a>
+<a href="report_daily.php" class="btn btn-primary btn-sm">Daily</a>
+<a href="report_weekly.php" class="btn btn-primary btn-sm">Weekly</a>
 
 <hr>
+
 
 <div class="card-box">
 
-<table class="table table-striped table-bordered">
+<form method="GET">
 
-<thead class="table-dark">
+<input type="month" name="month" value="<?=$month?>" class="form-control w-25 d-inline">
+
+<button class="btn btn-success btn-sm">Filter</button>
+
+</form>
+
+</div>
+
+
+<div class="row">
+
+<div class="col-md-2">
+<div class="card-box summary-card">
+<h6>Operating</h6>
+<h4><?=$operating?></h4>
+</div>
+</div>
+
+<div class="col-md-2">
+<div class="card-box summary-card">
+<h6>Standby</h6>
+<h4><?=$standby?></h4>
+</div>
+</div>
+
+<div class="col-md-2">
+<div class="card-box summary-card">
+<h6>Breakdown</h6>
+<h4><?=$breakdown?></h4>
+</div>
+</div>
+
+<div class="col-md-2">
+<div class="card-box summary-card">
+<h6>ILM</h6>
+<h4><?=$ilm?></h4>
+</div>
+</div>
+
+<div class="col-md-2">
+<div class="card-box summary-card">
+<h6>Zero Rate</h6>
+<h4 style="color:red"><?=$zero?></h4>
+</div>
+</div>
+
+<div class="col-md-2">
+<div class="card-box summary-card">
+<h6>Efficiency</h6>
+<h4><?=round($efficiency,1)?>%</h4>
+</div>
+</div>
+
+</div>
+
+
+<div class="card-box">
+
+<h5>Fleet Performance Distribution</h5>
+
+<canvas id="chart"></canvas>
+
+<form method="POST" action="export_monthly_pdf.php" class="mt-3">
+
+<input type="hidden" name="month" value="<?=$month?>">
+<input type="hidden" name="chart_image" id="chart_image">
+
+<button type="submit" class="btn btn-danger">
+Export Monthly PDF
+</button>
+
+</form>
+
+</div>
+
+
+<div class="card-box">
+
+<h5>Rig Monthly Performance</h5>
+
+<table class="table table-bordered table-striped">
 
 <tr>
-<th>Month</th>
+<th>Date</th>
+<th>Rig</th>
 <th>Operating</th>
 <th>Standby</th>
 <th>Breakdown</th>
@@ -79,68 +186,61 @@ margin-bottom:20px;
 <th>Zero Rate</th>
 </tr>
 
-</thead>
-
-<tbody>
-
 <?php
 
 while($row=$result->fetch_assoc()){
 
-$months[]=$row['month'];
-$operating[]=$row['operating'];
-$zero[]=$row['zero_rate'];
-
 echo "<tr>
-<td>{$row['month']}</td>
-<td>{$row['operating']}</td>
-<td>{$row['standby']}</td>
-<td>{$row['breakdown']}</td>
-<td>{$row['ilm']}</td>
-<td style='color:red'>{$row['zero_rate']}</td>
+
+<td>{$row['date']}</td>
+<td>{$row['rig']}</td>
+<td>{$row['operating_hours']}</td>
+<td>{$row['standby_hours']}</td>
+<td>{$row['breakdown_hours']}</td>
+<td>{$row['ilm_hours']}</td>
+<td>{$row['zero_rate_hours']}</td>
+
 </tr>";
 
 }
 
 ?>
 
-</tbody>
-
 </table>
 
 </div>
 
-<div class="card-box">
-
-<h5>Monthly Performance Chart</h5>
-
-<canvas id="monthlyChart"></canvas>
-
 </div>
 
-</div>
 
 <script>
 
-new Chart(document.getElementById('monthlyChart'),{
+var chart = new Chart(document.getElementById('chart'),{
 
-type:'bar',
+type:'pie',
 
 data:{
-labels: <?php echo json_encode($months); ?>,
-datasets:[
-{
-label:'Operating Hours',
-data: <?php echo json_encode($operating); ?>,
-backgroundColor:'#4CAF50'
-},
-{
-label:'Zero Rate',
-data: <?php echo json_encode($zero); ?>,
-backgroundColor:'#F44336'
-}
+labels:['Operating','Standby','Breakdown','ILM','Zero Rate'],
+
+datasets:[{
+data:[<?=$operating?>,<?=$standby?>,<?=$breakdown?>,<?=$ilm?>,<?=$zero?>],
+backgroundColor:[
+'#4CAF50',
+'#FFC107',
+'#F44336',
+'#9C27B0',
+'#000000'
 ]
+}]
 }
+
+});
+
+
+document.querySelector("form").addEventListener("submit",function(){
+
+document.getElementById("chart_image").value =
+chart.toBase64Image();
 
 });
 
