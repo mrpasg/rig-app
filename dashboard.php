@@ -85,14 +85,12 @@ $ilm=[];
 $zero=[];
 
 while($trend && $r=$trend->fetch_assoc()){
-
 $dates[]=$r['d'];
 $oper[]=$r['operating'];
 $standby[]=$r['standby'];
 $breakdown[]=$r['breakdown'];
 $ilm[]=$r['ilm'];
 $zero[]=$r['zero_rate'];
-
 }
 
 
@@ -112,7 +110,6 @@ while($rigPerf && $row=$rigPerf->fetch_assoc()){
 $rigNames[]=$row['rig'];
 $rigHours[]=$row['hours'];
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -194,19 +191,16 @@ margin:5px 0;
 <body>
 
 <div class="topbar">
-
 <img src="logo.png" height="35" style="margin-right:10px">
-
-Rig Operations Monitoring System
-
+KRISS DRILLING PVT.LTD.
 </div>
-
 
 <div class="sidebar">
 
 <a href="dashboard.php">Dashboard</a>
 <a href="add_entry.php">Add Entry</a>
 <a href="report_daily.php">Daily Report</a>
+<a href="report_weekly.php">Weekly Report</a>
 <a href="report_monthly.php">Monthly Report</a>
 <a href="alerts.php">Alerts</a>
 
@@ -221,43 +215,10 @@ Rig Operations Monitoring System
 
 <a href="add_entry.php" class="btn btn-success">Add Entry</a>
 <a href="report_daily.php" class="btn btn-primary">Daily Report</a>
+<a href="report_weekly.php" class="btn btn-primary">Weekly Report</a>
 <a href="report_monthly.php" class="btn btn-primary">Monthly Report</a>
 
 </div>
-
-
-<form method="GET" class="row g-2 mb-4">
-
-<div class="col-md-3">
-
-<select name="rig" class="form-select" onchange="this.form.submit()">
-
-<option value="">All Rigs</option>
-
-<option value="PPE-1" <?=$rig=='PPE-1'?'selected':''?>>PPE-1</option>
-<option value="PPE-2" <?=$rig=='PPE-2'?'selected':''?>>PPE-2</option>
-<option value="PPE-3" <?=$rig=='PPE-3'?'selected':''?>>PPE-3</option>
-<option value="PPE-4" <?=$rig=='PPE-4'?'selected':''?>>PPE-4</option>
-<option value="PPE-5" <?=$rig=='PPE-5'?'selected':''?>>PPE-5</option>
-
-</select>
-
-</div>
-
-<div class="col-md-3">
-
-<select name="range" class="form-select" onchange="this.form.submit()">
-
-<option value="">All Time</option>
-<option value="today">Today</option>
-<option value="week">This Week</option>
-<option value="month">This Month</option>
-
-</select>
-
-</div>
-
-</form>
 
 
 <!-- FLEET CARDS -->
@@ -295,8 +256,6 @@ Rig Operations Monitoring System
 </div>
 
 
-<!-- OPERATIONAL TREND -->
-
 <div class="card-box">
 
 <h5>Operational Trend</h5>
@@ -305,8 +264,6 @@ Rig Operations Monitoring System
 
 </div>
 
-
-<!-- BOTTOM CHARTS -->
 
 <div class="row">
 
@@ -348,11 +305,11 @@ type:'line',
 data:{
 labels: <?=json_encode($dates)?>,
 datasets:[
-{label:'Operating',data:<?=json_encode($oper)?>,borderColor:'#22c55e',tension:0.3},
-{label:'Standby',data:<?=json_encode($standby)?>,borderColor:'#facc15',tension:0.3},
-{label:'Breakdown',data:<?=json_encode($breakdown)?>,borderColor:'#ef4444',tension:0.3},
-{label:'ILM',data:<?=json_encode($ilm)?>,borderColor:'#9333ea',tension:0.3},
-{label:'Zero Rate',data:<?=json_encode($zero)?>,borderColor:'#000000',tension:0.3}
+{label:'Operating',data:<?=json_encode($oper)?>,borderColor:'#22c55e'},
+{label:'Standby',data:<?=json_encode($standby)?>,borderColor:'#facc15'},
+{label:'Breakdown',data:<?=json_encode($breakdown)?>,borderColor:'#ef4444'},
+{label:'ILM',data:<?=json_encode($ilm)?>,borderColor:'#9333ea'},
+{label:'Zero Rate',data:<?=json_encode($zero)?>,borderColor:'#000'}
 ]
 }
 
