@@ -5,6 +5,10 @@ include "config.php";
 
 use Dompdf\Dompdf;
 
+/* LOGO PATH */
+
+$logo = __DIR__ . "/logo.png";
+
 /* RECEIVE FILTERS */
 
 $rig = $_POST['rig'] ?? "";
@@ -31,11 +35,9 @@ $where[]="date=CURDATE()-INTERVAL 1 DAY";
 
 $whereSQL = count($where) ? "WHERE ".implode(" AND ",$where) : "";
 
-
 /* RECEIVE CHART IMAGE */
 
 $chart_image = $_POST['chart_image'] ?? "";
-
 
 /* SUMMARY DATA */
 
@@ -51,7 +53,6 @@ FROM rig_daily_log
 $whereSQL
 ")->fetch_assoc();
 
-
 $operating = $summary['operating'] ?? 0;
 $standby = $summary['standby'] ?? 0;
 $breakdown = $summary['breakdown'] ?? 0;
@@ -63,7 +64,6 @@ $rigs = $summary['rigs'] ?? 0;
 
 $efficiency = ($rigs>0) ? ($operating/($rigs*24))*100 : 0;
 $efficiency = round($efficiency,1);
-
 
 /* DAILY TABLE */
 
@@ -81,10 +81,9 @@ $whereSQL
 ORDER BY date DESC
 ");
 
+/* BUILD HTML */
 
-/* PDF HTML */
-
-$html="
+$html = "
 
 <style>
 
@@ -98,6 +97,7 @@ text-align:center;
 
 .summary{
 margin-top:20px;
+border-collapse:collapse;
 }
 
 .summary td{
@@ -128,19 +128,9 @@ text-align:center;
 
 <div class='header'>
 
-$logo = __DIR__ . "/logo.png";
-
-$html.="
-
-<div style='text-align:center'>
-
 <img src='$logo' height='60'>
 
 <h2>Rig Operations Daily Report</h2>
-
-</div>
-
-";
 
 </div>
 
@@ -182,8 +172,8 @@ $html.="
 </tr>
 
 </table>
-";
 
+";
 
 /* ADD PIE CHART */
 
@@ -201,8 +191,7 @@ $html.="
 
 }
 
-
-/* RIG DAILY TABLE */
+/* DAILY TABLE */
 
 $html.="
 
@@ -221,7 +210,6 @@ $html.="
 </tr>
 
 ";
-
 
 while($row=$result->fetch_assoc()){
 
@@ -243,9 +231,7 @@ $html.="
 
 }
 
-
 $html.="</table>";
-
 
 /* GENERATE PDF */
 
