@@ -1,4 +1,7 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors',1);
+
 include "config.php";
 
 /* ---------------- FILTER ---------------- */
@@ -27,7 +30,7 @@ $whereSQL = count($where) ? "WHERE ".implode(" AND ",$where) : "";
 
 /* ---------------- SUMMARY ---------------- */
 
-$summary=$conn->query("
+$q=$conn->query("
 SELECT
 COALESCE(SUM(operating_hours),0) operating,
 COALESCE(SUM(standby_hours),0) standby,
@@ -37,7 +40,16 @@ COALESCE(SUM(zero_rate_hours),0) zero_rate,
 COUNT(DISTINCT rig) rigs
 FROM rig_daily_log
 $whereSQL
-")->fetch_assoc();
+");
+
+$summary=$q?$q->fetch_assoc():[
+'operating'=>0,
+'standby'=>0,
+'breakdown'=>0,
+'ilm'=>0,
+'zero_rate'=>0,
+'rigs'=>0
+];
 
 $operating=$summary['operating'];
 $standby_total=$summary['standby'];
@@ -48,6 +60,7 @@ $rigs=$summary['rigs'];
 
 $efficiency = ($rigs>0)?($operating/($rigs*24))*100:0;
 if($efficiency>100) $efficiency=100;
+if($efficiency<0) $efficiency=0;
 
 
 /* ---------------- STATUS ---------------- */
@@ -58,6 +71,7 @@ FROM rig_daily_log r1
 INNER JOIN (
 SELECT rig,MAX(date) maxdate
 FROM rig_daily_log
+$whereSQL
 GROUP BY rig
 ) r2
 ON r1.rig=r2.rig AND r1.date=r2.maxdate
@@ -70,20 +84,28 @@ $trend=$conn->query("
 SELECT DATE(date) d,
 SUM(operating_hours) operating,
 SUM(standby_hours) standby,
-SUM(breakdown_hours) breakdown
+SUM(breakdown_hours) breakdown,
+SUM(ilm_hours) ilm
 FROM rig_daily_log
 $whereSQL
 GROUP BY d
 ORDER BY d
 ");
 
-$dates=[];$oper=[];$standby=[];$breakdown=[];
+$dates=[];
+$oper=[];
+$standby=[];
+$breakdown=[];
+$ilm=[];
 
-while($r=$trend->fetch_assoc()){
+while($trend && $r=$trend->fetch_assoc()){
+
 $dates[]=$r['d'];
 $oper[]=$r['operating'];
 $standby[]=$r['standby'];
 $breakdown[]=$r['breakdown'];
+$ilm[]=$r['ilm'];
+
 }
 
 
@@ -96,9 +118,10 @@ $whereSQL
 GROUP BY rig
 ");
 
-$rigNames=[];$rigHours=[];
+$rigNames=[];
+$rigHours=[];
 
-while($row=$rigPerf->fetch_assoc()){
+while($rigPerf && $row=$rigPerf->fetch_assoc()){
 $rigNames[]=$row['rig'];
 $rigHours[]=$row['hours'];
 }
@@ -123,8 +146,6 @@ font-family:Segoe UI;
 background:#f3f5f9;
 }
 
-/* HEADER */
-
 .topbar{
 height:60px;
 background:#0b3d6d;
@@ -134,8 +155,6 @@ align-items:center;
 padding:0 20px;
 font-weight:600;
 }
-
-/* SIDEBAR */
 
 .sidebar{
 width:220px;
@@ -159,15 +178,11 @@ background:#0ea5e9;
 color:white;
 }
 
-/* CONTENT */
-
 .main{
 margin-left:220px;
 margin-top:60px;
 padding:25px;
 }
-
-/* CARDS */
 
 .card-box{
 background:white;
@@ -184,8 +199,6 @@ text-align:center;
 .summary h3{
 margin:5px 0;
 }
-
-/* STATUS */
 
 .status-running{
 background:#22c55e;
@@ -220,7 +233,6 @@ border-radius:6px;
 Rig Operations Monitoring System
 
 </div>
-
 
 <div class="sidebar">
 
@@ -280,8 +292,6 @@ Rig Operations Monitoring System
 </form>
 
 
-<!-- SUMMARY CARDS -->
-
 <div class="row">
 
 <div class="col-md-3">
@@ -332,7 +342,7 @@ Rig Operations Monitoring System
 
 <?php
 
-while($row=$status->fetch_assoc()){
+while($status && $row=$status->fetch_assoc()){
 
 $cls='';
 
@@ -404,8 +414,6 @@ echo "<tr>
 
 <script>
 
-/* TREND */
-
 new Chart(document.getElementById('trendChart'),{
 
 type:'line',
@@ -415,14 +423,13 @@ labels: <?=json_encode($dates)?>,
 datasets:[
 {label:'Operating',data:<?=json_encode($oper)?>,borderColor:'#22c55e',tension:0.3},
 {label:'Standby',data:<?=json_encode($standby)?>,borderColor:'#facc15',tension:0.3},
-{label:'Breakdown',data:<?=json_encode($breakdown)?>,borderColor:'#ef4444',tension:0.3}
+{label:'Breakdown',data:<?=json_encode($breakdown)?>,borderColor:'#ef4444',tension:0.3},
+{label:'ILM',data:<?=json_encode($ilm)?>,borderColor:'#9333ea',tension:0.3}
 ]
 }
 
 });
 
-
-/* RIG COMPARISON */
 
 new Chart(document.getElementById('rigChart'),{
 
@@ -439,8 +446,6 @@ backgroundColor:'#3b82f6'
 
 });
 
-
-/* DOWNTIME */
 
 new Chart(document.getElementById('downtimeChart'),{
 
