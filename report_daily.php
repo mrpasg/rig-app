@@ -119,18 +119,12 @@ align-items:center;
 <a href="add_entry.php" class="btn btn-success btn-sm">Add Entry</a>
 <a href="report_weekly.php" class="btn btn-primary btn-sm">Weekly Report</a>
 <a href="report_monthly.php" class="btn btn-primary btn-sm">Monthly Report</a>
-<a href="export_daily_pdf.php?rig=<?=$rig?>&date=<?=$date?>&range=<?=$range?>" 
-class="btn btn-danger btn-sm">Export PDF</a>
-
 
 </div>
 
 </div>
 
 <hr>
-
-
-<!-- FILTER PANEL -->
 
 <div class="card-box">
 
@@ -180,8 +174,6 @@ class="btn btn-danger btn-sm">Export PDF</a>
 </div>
 
 
-<!-- DATA TABLE -->
-
 <div class="card-box">
 
 <table class="table table-striped table-bordered">
@@ -227,16 +219,18 @@ echo "<tr>
 </div>
 
 
-<!-- PIE CHART -->
-
 <div class="card-box">
 
 <h5>Daily Performance Distribution</h5>
 
 <canvas id="dailyChart"></canvas>
+
 <form method="POST" action="export_daily_pdf.php" class="mt-3">
 
 <input type="hidden" name="chart_image" id="chart_image">
+<input type="hidden" name="rig" value="<?=$rig?>">
+<input type="hidden" name="date" value="<?=$date?>">
+<input type="hidden" name="range" value="<?=$range?>">
 
 <button type="submit" class="btn btn-danger">
 Export PDF with Chart
@@ -251,7 +245,7 @@ Export PDF with Chart
 
 <script>
 
-new Chart(document.getElementById('dailyChart'),{
+const chart = new Chart(document.getElementById('dailyChart'),{
 
 type:'pie',
 
@@ -286,6 +280,16 @@ backgroundColor:[
 }]
 
 }
+
+});
+
+
+document.querySelector("form[action='export_daily_pdf.php']")
+.addEventListener("submit",function(){
+
+let chartImage = chart.toBase64Image();
+
+document.getElementById("chart_image").value = chartImage;
 
 });
 
