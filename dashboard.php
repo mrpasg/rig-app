@@ -1,4 +1,4 @@
-Adding “Yesterday” next to Today is extremely useful for rig operations review meetings<?php
+<?php
 error_reporting(E_ALL);
 ini_set('display_errors',1);
 
@@ -88,14 +88,12 @@ $ilm=[];
 $zero=[];
 
 while($trend && $r=$trend->fetch_assoc()){
-
 $dates[]=$r['d'];
 $oper[]=$r['operating'];
 $standby[]=$r['standby'];
 $breakdown[]=$r['breakdown'];
 $ilm[]=$r['ilm'];
 $zero[]=$r['zero_rate'];
-
 }
 
 
@@ -348,9 +346,7 @@ KRISS DRILLING PVT. LTD.
 <script>
 
 new Chart(document.getElementById('trendChart'),{
-
 type:'line',
-
 data:{
 labels: <?=json_encode($dates)?>,
 datasets:[
@@ -361,14 +357,11 @@ datasets:[
 {label:'Zero Rate',data:<?=json_encode($zero)?>,borderColor:'#000'}
 ]
 }
-
 });
 
 
 new Chart(document.getElementById('rigChart'),{
-
 type:'bar',
-
 data:{
 labels: <?=json_encode($rigNames)?>,
 datasets:[{
@@ -377,22 +370,18 @@ data: <?=json_encode($rigHours)?>,
 backgroundColor:'#3b82f6'
 }]
 }
-
 });
 
 
 new Chart(document.getElementById('downtimeChart'),{
-
 type:'pie',
-
 data:{
-labels:['Standby','Breakdown','ILM'],
+labels:['Standby','Breakdown','ILM','Zero Rate'],
 datasets:[{
-data:[<?=$standby_total?>,<?=$breakdown_total?>,<?=$ilm_total?>],
-backgroundColor:['#facc15','#ef4444','#9333ea']
+data:[<?=$standby_total?>,<?=$breakdown_total?>,<?=$ilm_total?>,<?=$zero_total?>],
+backgroundColor:['#facc15','#ef4444','#9333ea','#000']
 }]
 }
-
 });
 
 </script>
