@@ -61,7 +61,57 @@ $ilm_total=$summary['ilm'];
 $zero_total=$summary['zero_rate'];
 $rigs=$summary['rigs'];
 
-$efficiency = ($rigs>0)?($operating/($rigs*24))*100:0;
+
+/* ---------------- DAYS CALCULATION ---------------- */
+
+$days = 1;
+
+if($range=="today" || $range=="yesterday"){
+$days = 1;
+}
+
+elseif($range=="week"){
+$days = 7;
+}
+
+elseif($range=="month"){
+$days = date('t');
+}
+
+else{
+
+$d=$conn->query("
+SELECT 
+MIN(date) start_date,
+MAX(date) end_date
+FROM rig_daily_log
+$whereSQL
+");
+
+if($d && $row=$d->fetch_assoc()){
+
+if($row['start_date'] && $row['end_date']){
+
+$start = strtotime($row['start_date']);
+$end   = strtotime($row['end_date']);
+
+$days = (($end-$start)/86400)+1;
+
+}
+
+}
+
+}
+
+
+/* ---------------- EFFICIENCY ---------------- */
+
+$total_available_hours = $rigs * 24 * $days;
+
+$efficiency = ($total_available_hours>0)
+? ($operating / $total_available_hours)*100
+: 0;
+
 if($efficiency>100) $efficiency=100;
 
 
@@ -264,8 +314,6 @@ KRISS DRILLING PVT. LTD.
 </form>
 
 
-<!-- FLEET CARDS -->
-
 <div class="row">
 
 <div class="col-md-3">
@@ -299,8 +347,6 @@ KRISS DRILLING PVT. LTD.
 </div>
 
 
-<!-- OPERATIONAL TREND -->
-
 <div class="card-box">
 
 <h5>Operational Trend</h5>
@@ -309,8 +355,6 @@ KRISS DRILLING PVT. LTD.
 
 </div>
 
-
-<!-- BOTTOM CHARTS -->
 
 <div class="row">
 
