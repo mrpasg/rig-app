@@ -119,6 +119,9 @@ align-items:center;
 <a href="add_entry.php" class="btn btn-success btn-sm">Add Entry</a>
 <a href="report_weekly.php" class="btn btn-primary btn-sm">Weekly Report</a>
 <a href="report_monthly.php" class="btn btn-primary btn-sm">Monthly Report</a>
+<a href="export_daily_pdf.php?rig=<?=$rig?>&date=<?=$date?>&range=<?=$range?>" 
+class="btn btn-danger btn-sm">Export PDF</a>
+
 
 </div>
 
