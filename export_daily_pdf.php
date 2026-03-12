@@ -1,38 +1,11 @@
-?php
+<?php
 
 require 'vendor/autoload.php';
 include "config.php";
 
 use Dompdf\Dompdf;
 
-/* FILTERS */
-
-$rig = $_GET['rig'] ?? "";
-$date = $_GET['date'] ?? "";
-$range = $_GET['range'] ?? "";
-
-$where=[];
-
-if($rig!=""){
-$where[]="rig='$rig'";
-}
-
-if($date!=""){
-$where[]="date='$date'";
-}
-
-if($range=="today"){
-$where[]="date=CURDATE()";
-}
-
-if($range=="yesterday"){
-$where[]="date=CURDATE()-INTERVAL 1 DAY";
-}
-
-$whereSQL = count($where) ? "WHERE ".implode(" AND ",$where) : "";
-
-
-/* QUERY */
+$chart_image = $_POST['chart_image'] ?? '';
 
 $result=$conn->query("
 SELECT
@@ -44,17 +17,15 @@ breakdown_hours,
 ilm_hours,
 zero_rate_hours
 FROM rig_daily_log
-$whereSQL
 ORDER BY date DESC
 ");
 
 
-/* BUILD HTML */
-
 $html = "
+
 <h2 style='text-align:center'>Rig Daily Performance Report</h2>
 
-<table border='1' width='100%' cellpadding='6' cellspacing='0'>
+<table border='1' width='100%' cellpadding='6'>
 
 <tr style='background:#eee'>
 <th>Date</th>
@@ -69,7 +40,7 @@ $html = "
 
 while($row=$result->fetch_assoc()){
 
-$html .= "
+$html.="
 <tr>
 <td>{$row['date']}</td>
 <td>{$row['rig']}</td>
@@ -83,11 +54,15 @@ $html .= "
 
 }
 
-$html .= "</table>";
+$html.="</table>";
 
+if($chart_image){
 
+$html.="<br><h3>Daily Performance Distribution</h3>";
 
-/* GENERATE PDF */
+$html.="<img src='$chart_image' width='400'>";
+
+}
 
 $dompdf = new Dompdf();
 
