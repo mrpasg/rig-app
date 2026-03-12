@@ -234,6 +234,15 @@ echo "<tr>
 <h5>Daily Performance Distribution</h5>
 
 <canvas id="dailyChart"></canvas>
+<form method="POST" action="export_daily_pdf.php" class="mt-3">
+
+<input type="hidden" name="chart_image" id="chart_image">
+
+<button type="submit" class="btn btn-danger">
+Export PDF with Chart
+</button>
+
+</form>
 
 </div>
 
