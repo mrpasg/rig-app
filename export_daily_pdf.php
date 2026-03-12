@@ -5,9 +5,20 @@ include "config.php";
 
 use Dompdf\Dompdf;
 
-/* LOGO PATH */
+/* LOGO BASE64 (Most reliable for Dompdf) */
 
-$logo = __DIR__ . "/logo.png";
+$logo_path = __DIR__ . "/logo.png";
+$logo_base64 = "";
+
+if(file_exists($logo_path)){
+    $logo_data = base64_encode(file_get_contents($logo_path));
+    $logo_base64 = "data:image/png;base64," . $logo_data;
+}
+
+/* REPORT DATE + TIME */
+
+$report_date = date("d-M-Y");
+$report_time = date("H:i:s");
 
 /* RECEIVE FILTERS */
 
@@ -93,10 +104,16 @@ font-family:Arial;
 
 .header{
 text-align:center;
+margin-bottom:10px;
+}
+
+.reportinfo{
+font-size:12px;
+margin-bottom:15px;
 }
 
 .summary{
-margin-top:20px;
+margin-top:10px;
 border-collapse:collapse;
 }
 
@@ -123,14 +140,28 @@ border:1px solid #ddd;
 text-align:center;
 }
 
+.footer{
+margin-top:30px;
+font-size:11px;
+text-align:center;
+color:#777;
+}
+
 </style>
 
 
 <div class='header'>
 
-<img src='$logo' height='60'>
+<img src='$logo_base64' height='70'>
 
 <h2>Rig Operations Daily Report</h2>
+
+</div>
+
+<div class='reportinfo'>
+
+<b>Report Date:</b> $report_date <br>
+<b>Generated Time:</b> $report_time
 
 </div>
 
@@ -231,7 +262,15 @@ $html.="
 
 }
 
-$html.="</table>";
+$html.="</table>
+
+<div class='footer'>
+
+KRISS DRILLING PVT. LTD. — Rig Monitoring System
+
+</div>
+
+";
 
 /* GENERATE PDF */
 
