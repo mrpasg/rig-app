@@ -30,7 +30,7 @@ $where[]="date=CURDATE()-INTERVAL 1 DAY";
 $whereSQL = count($where) ? "WHERE ".implode(" AND ",$where) : "";
 
 
-/* -------- QUERY -------- */
+/* -------- TABLE DATA -------- */
 
 $result=$conn->query("
 SELECT
@@ -46,9 +46,28 @@ $whereSQL
 ORDER BY date DESC
 ");
 
-$dates=[];
-$operating=[];
-$zero=[];
+
+/* -------- PIE CHART DATA -------- */
+
+$chart=$conn->query("
+SELECT
+SUM(operating_hours) operating,
+SUM(standby_hours) standby,
+SUM(breakdown_hours) breakdown,
+SUM(ilm_hours) ilm,
+SUM(zero_rate_hours) zero_rate
+FROM rig_daily_log
+$whereSQL
+");
+
+$data=$chart->fetch_assoc();
+
+$operating_total=$data['operating'] ?? 0;
+$standby_total=$data['standby'] ?? 0;
+$breakdown_total=$data['breakdown'] ?? 0;
+$ilm_total=$data['ilm'] ?? 0;
+$zero_total=$data['zero_rate'] ?? 0;
+
 ?>
 
 <!DOCTYPE html>
@@ -59,7 +78,6 @@ $zero=[];
 <title>Daily Rig Report</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -153,8 +171,6 @@ align-items:center;
 
 <hr>
 
-<!-- QUICK FILTERS -->
-
 <a href="?range=today" class="btn btn-outline-primary btn-sm">Today</a>
 <a href="?range=yesterday" class="btn btn-outline-primary btn-sm">Yesterday</a>
 
@@ -187,10 +203,6 @@ align-items:center;
 
 while($row=$result->fetch_assoc()){
 
-$dates[]=$row['date'];
-$operating[]=$row['operating_hours'];
-$zero[]=$row['zero_rate_hours'];
-
 echo "<tr>
 <td>{$row['date']}</td>
 <td>{$row['rig']}</td>
@@ -212,11 +224,11 @@ echo "<tr>
 </div>
 
 
-<!-- CHART -->
+<!-- PIE CHART -->
 
 <div class="card-box">
 
-<h5>Daily Performance Chart</h5>
+<h5>Daily Performance Distribution</h5>
 
 <canvas id="dailyChart"></canvas>
 
@@ -229,24 +241,38 @@ echo "<tr>
 
 new Chart(document.getElementById('dailyChart'),{
 
-type:'line',
+type:'pie',
 
 data:{
-labels: <?=json_encode($dates)?>,
-datasets:[
-{
-label:'Operating Hours',
-data: <?=json_encode($operating)?>,
-borderColor:'#4CAF50',
-fill:false
-},
-{
-label:'Zero Rate',
-data: <?=json_encode($zero)?>,
-borderColor:'#F44336',
-fill:false
-}
+
+labels:[
+'Operating Hours',
+'Standby',
+'Breakdown',
+'ILM',
+'Zero Rate'
+],
+
+datasets:[{
+
+data:[
+<?=$operating_total?>,
+<?=$standby_total?>,
+<?=$breakdown_total?>,
+<?=$ilm_total?>,
+<?=$zero_total?>
+],
+
+backgroundColor:[
+'#4CAF50',
+'#FFC107',
+'#F44336',
+'#9C27B0',
+'#000000'
 ]
+
+}]
+
 }
 
 });
