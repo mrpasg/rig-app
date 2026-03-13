@@ -5,7 +5,7 @@ include "config.php";
 
 use Dompdf\Dompdf;
 
-/* LOGO */
+/* ---------------- LOGO ---------------- */
 
 $logo_path = __DIR__."/logo.png";
 $logo_base64="";
@@ -14,18 +14,20 @@ if(file_exists($logo_path)){
 $logo_base64="data:image/png;base64,".base64_encode(file_get_contents($logo_path));
 }
 
-$month=$_POST['month'];
-$chart_image=$_POST['chart_image'];
+/* ---------------- RECEIVE DATA ---------------- */
 
-/* DATE RANGE */
+$month = $_POST['month'] ?? date("Y-m");
+$chart_image = $_POST['chart_image'] ?? "";
+
+/* ---------------- DATE RANGE ---------------- */
 
 $start = date("Y-m-01", strtotime($month));
 $end   = date("Y-m-t", strtotime($month));
 
-$report_date=date("d-M-Y");
-$report_time=date("H:i:s");
+$report_date = date("d-M-Y");
+$report_time = date("H:i:s");
 
-/* SUMMARY */
+/* ---------------- SUMMARY ---------------- */
 
 $summary=$conn->query("
 SELECT
@@ -39,17 +41,26 @@ FROM rig_daily_log
 WHERE date BETWEEN '$start' AND '$end'
 ")->fetch_assoc();
 
-$operating=$summary['operating'];
-$standby=$summary['standby'];
-$breakdown=$summary['breakdown'];
-$ilm=$summary['ilm'];
-$zero=$summary['zero_rate'];
-$rigs=$summary['rigs'];
+$operating = $summary['operating'] ?? 0;
+$standby   = $summary['standby'] ?? 0;
+$breakdown = $summary['breakdown'] ?? 0;
+$ilm       = $summary['ilm'] ?? 0;
+$zero      = $summary['zero_rate'] ?? 0;
+$rigs      = $summary['rigs'] ?? 0;
 
-$days=date('t',strtotime($month));
-$efficiency = ($rigs>0)?($operating/($rigs*24*$days))*100:0;
+/* ---------------- EFFICIENCY ---------------- */
 
-/* TABLE */
+$days = date('t', strtotime($month));
+
+$total_available_hours = $rigs * 24 * $days;
+
+$efficiency = ($total_available_hours>0)
+? ($operating / $total_available_hours)*100
+: 0;
+
+$efficiency = round($efficiency,1);
+
+/* ---------------- TABLE DATA ---------------- */
 
 $result=$conn->query("
 SELECT *
@@ -58,12 +69,15 @@ WHERE date BETWEEN '$start' AND '$end'
 ORDER BY date DESC
 ");
 
+/* ---------------- HTML ---------------- */
 
 $html="
 
 <style>
 
-body{font-family:Arial}
+body{
+font-family:Arial;
+}
 
 .summary td{
 border:1px solid #ccc;
@@ -73,6 +87,7 @@ padding:8px 12px;
 .table{
 border-collapse:collapse;
 width:100%;
+margin-top:20px;
 }
 
 .table th{
@@ -85,6 +100,13 @@ padding:8px;
 border:1px solid #ccc;
 padding:6px;
 text-align:center;
+}
+
+.footer{
+margin-top:30px;
+font-size:11px;
+text-align:center;
+color:#777;
 }
 
 </style>
@@ -113,7 +135,7 @@ text-align:center;
 <td>$rigs</td>
 
 <td><b>Fleet Efficiency</b></td>
-<td>".round($efficiency,1)." %</td>
+<td>$efficiency %</td>
 
 </tr>
 
@@ -147,6 +169,8 @@ text-align:center;
 </table>
 ";
 
+/* ---------------- PIE CHART ---------------- */
+
 if($chart_image){
 
 $html.="
@@ -162,6 +186,8 @@ $html.="
 ";
 
 }
+
+/* ---------------- TABLE ---------------- */
 
 $html.="
 
@@ -182,6 +208,8 @@ $html.="
 </tr>
 ";
 
+/* ---------------- TABLE LOOP ---------------- */
+
 while($row=$result->fetch_assoc()){
 
 $html.="
@@ -200,7 +228,16 @@ $html.="
 
 }
 
-$html.="</table>";
+$html.="</table>
+
+<div class='footer'>
+
+KRISS DRILLING PVT. LTD. — Rig Monitoring System
+
+</div>
+";
+
+/* ---------------- PDF ---------------- */
 
 $dompdf=new Dompdf();
 
