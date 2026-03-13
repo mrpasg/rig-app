@@ -2,7 +2,11 @@
 session_start();
 include "config.php";
 
-$username = $_POST['username'];
+$error = "";
+
+if(isset($_POST['login'])){
+
+$username = $conn->real_escape_string($_POST['username']);
 $password = md5($_POST['password']);
 
 $result = $conn->query("
@@ -17,14 +21,16 @@ $user = $result->fetch_assoc();
 
 $_SESSION['user_id'] = $user['id'];
 $_SESSION['username'] = $user['username'];
-$_SESSION['role'] = $user['role'];   // VERY IMPORTANT
+$_SESSION['role'] = $user['role'];
 
 header("Location: dashboard.php");
 exit;
 
 }else{
 
-echo "Invalid Login";
+$error = "Invalid username or password";
+
+}
 
 }
 ?>
@@ -44,17 +50,21 @@ echo "Invalid Login";
 
 <div class="container mt-5" style="max-width:400px">
 
-<h3>Rig Monitoring Login</h3>
+<h3 class="mb-3">Rig Monitoring Login</h3>
 
 <form method="POST">
 
 <input type="text" name="username" class="form-control mb-2" placeholder="Username" required>
 
-<input type="password" name="password" class="form-control mb-2" placeholder="Password" required>
+<input type="password" name="password" class="form-control mb-3" placeholder="Password" required>
 
-<button name="login" class="btn btn-primary w-100">Login</button>
+<button type="submit" name="login" class="btn btn-primary w-100">Login</button>
 
-<?php if(isset($error)) echo "<p class='text-danger mt-2'>$error</p>"; ?>
+<?php
+if($error!=""){
+echo "<p class='text-danger mt-2'>$error</p>";
+}
+?>
 
 </form>
 
