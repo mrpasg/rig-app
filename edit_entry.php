@@ -5,16 +5,14 @@ ini_set('display_errors',1);
 include "auth.php";
 include "config.php";
 
-/* GET RECORD ID */
+/* GET RECORD */
 
 $id = $_GET['id'] ?? '';
 
 if($id==""){
-echo "Invalid Entry";
+echo "Invalid entry";
 exit;
 }
-
-/* FETCH RECORD */
 
 $result = $conn->query("
 SELECT *
@@ -89,7 +87,6 @@ margin-bottom:20px;
 
 <input type="hidden" name="id" value="<?=$row['id']?>">
 
-
 <div class="row mb-3">
 
 <div class="col-md-6">
@@ -153,12 +150,22 @@ margin-bottom:20px;
 </div>
 
 
-<div class="row mb-4">
+<div class="row mb-3">
 
 <div class="col-md-6">
 <label class="form-label">Status</label>
 <input type="text" name="status" class="form-control" value="<?=$row['status']?>">
 </div>
+
+</div>
+
+
+<!-- HOURS VALIDATION BOX -->
+
+<div class="alert alert-info mt-3" id="hoursInfo">
+
+Total Hours: <b id="totalHours">0</b> |
+Remaining Hours: <b id="remainingHours">24</b>
 
 </div>
 
@@ -172,6 +179,59 @@ margin-bottom:20px;
 </div>
 
 </div>
+
+
+<script>
+
+/* HOURS CALCULATION */
+
+function calculateHours(){
+
+let operating = parseFloat(document.querySelector("[name='operating']").value) || 0;
+let standby = parseFloat(document.querySelector("[name='standby']").value) || 0;
+let breakdown = parseFloat(document.querySelector("[name='breakdown']").value) || 0;
+let ilm = parseFloat(document.querySelector("[name='ilm']").value) || 0;
+let zero = parseFloat(document.querySelector("[name='zero']").value) || 0;
+
+let total = operating + standby + breakdown + ilm + zero;
+
+let remaining = 24 - total;
+
+document.getElementById("totalHours").innerText = total.toFixed(2);
+document.getElementById("remainingHours").innerText = remaining.toFixed(2);
+
+let box = document.getElementById("hoursInfo");
+
+if(total > 24){
+
+box.className = "alert alert-danger";
+
+box.innerHTML = "⚠ Total Hours: <b>"+total.toFixed(2)+"</b> — Exceeds 24 hours!";
+
+}
+else{
+
+box.className = "alert alert-info";
+
+box.innerHTML = "Total Hours: <b>"+total.toFixed(2)+"</b> | Remaining Hours: <b>"+remaining.toFixed(2)+"</b>";
+
+}
+
+}
+
+/* RUN ON INPUT CHANGE */
+
+document.querySelectorAll("input[type='number']").forEach(function(el){
+
+el.addEventListener("input", calculateHours);
+
+});
+
+/* RUN ON PAGE LOAD */
+
+calculateHours();
+
+</script>
 
 </body>
 </html>
