@@ -1,4 +1,8 @@
 <?php
+if($_SESSION['role']!='admin'){
+echo "Access denied";
+exit;
+}
 include "auth.php";
 include "config.php";
 
