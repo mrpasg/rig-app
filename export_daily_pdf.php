@@ -1,3 +1,4 @@
+```php
 <?php
 
 require 'vendor/autoload.php';
@@ -5,7 +6,7 @@ include "config.php";
 
 use Dompdf\Dompdf;
 
-/* LOGO BASE64 (Most reliable for Dompdf) */
+/* ---------------- LOGO BASE64 ---------------- */
 
 $logo_path = __DIR__ . "/logo.png";
 $logo_base64 = "";
@@ -15,12 +16,12 @@ if(file_exists($logo_path)){
     $logo_base64 = "data:image/png;base64," . $logo_data;
 }
 
-/* REPORT DATE + TIME */
+/* ---------------- REPORT DATE ---------------- */
 
 $report_date = date("d-M-Y");
 $report_time = date("H:i:s");
 
-/* RECEIVE FILTERS */
+/* ---------------- RECEIVE FILTERS ---------------- */
 
 $rig = $_POST['rig'] ?? "";
 $date = $_POST['date'] ?? "";
@@ -46,11 +47,11 @@ $where[]="date=CURDATE()-INTERVAL 1 DAY";
 
 $whereSQL = count($where) ? "WHERE ".implode(" AND ",$where) : "";
 
-/* RECEIVE CHART IMAGE */
+/* ---------------- RECEIVE CHART IMAGE ---------------- */
 
 $chart_image = $_POST['chart_image'] ?? "";
 
-/* SUMMARY DATA */
+/* ---------------- SUMMARY DATA ---------------- */
 
 $summary=$conn->query("
 SELECT
@@ -71,12 +72,41 @@ $ilm = $summary['ilm'] ?? 0;
 $zero = $summary['zero_rate'] ?? 0;
 $rigs = $summary['rigs'] ?? 0;
 
-/* FLEET EFFICIENCY */
+/* ---------------- CALCULATE DAYS ---------------- */
 
-$efficiency = ($rigs>0) ? ($operating/($rigs*24))*100 : 0;
+$days = 1;
+
+$d=$conn->query("
+SELECT 
+MIN(date) start_date,
+MAX(date) end_date
+FROM rig_daily_log
+$whereSQL
+");
+
+if($d && $row=$d->fetch_assoc()){
+
+if($row['start_date'] && $row['end_date']){
+
+$start = strtotime($row['start_date']);
+$end   = strtotime($row['end_date']);
+
+$days = (($end-$start)/86400)+1;
+
+}
+}
+
+/* ---------------- FLEET EFFICIENCY ---------------- */
+
+$total_available_hours = $rigs * 24 * $days;
+
+$efficiency = ($total_available_hours>0)
+? ($operating / $total_available_hours)*100
+: 0;
+
 $efficiency = round($efficiency,1);
 
-/* DAILY TABLE */
+/* ---------------- DAILY TABLE ---------------- */
 
 $result=$conn->query("
 SELECT
@@ -92,9 +122,9 @@ $whereSQL
 ORDER BY date DESC
 ");
 
-/* BUILD HTML */
+/* ---------------- BUILD HTML ---------------- */
 
-$html = "
+$html="
 
 <style>
 
@@ -203,10 +233,9 @@ color:#777;
 </tr>
 
 </table>
-
 ";
 
-/* ADD PIE CHART */
+/* ---------------- ADD PIE CHART ---------------- */
 
 if($chart_image){
 
@@ -219,10 +248,9 @@ $html.="
 </div>
 
 ";
-
 }
 
-/* DAILY TABLE */
+/* ---------------- DAILY TABLE ---------------- */
 
 $html.="
 
@@ -239,7 +267,6 @@ $html.="
 <th>ILM</th>
 <th>Zero Rate</th>
 </tr>
-
 ";
 
 while($row=$result->fetch_assoc()){
@@ -257,9 +284,7 @@ $html.="
 <td>{$row['zero_rate_hours']}</td>
 
 </tr>
-
 ";
-
 }
 
 $html.="</table>
@@ -269,10 +294,9 @@ $html.="</table>
 KRISS DRILLING PVT. LTD. — Rig Monitoring System
 
 </div>
-
 ";
 
-/* GENERATE PDF */
+/* ---------------- GENERATE PDF ---------------- */
 
 $dompdf = new Dompdf();
 
@@ -285,3 +309,4 @@ $dompdf->render();
 $dompdf->stream("rig_daily_report.pdf");
 
 ?>
+```
