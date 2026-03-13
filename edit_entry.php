@@ -5,14 +5,16 @@ ini_set('display_errors',1);
 include "auth.php";
 include "config.php";
 
-/* GET RECORD */
+/* GET ENTRY ID */
 
 $id = $_GET['id'] ?? '';
 
 if($id==""){
-echo "Invalid entry";
+echo "Invalid Entry";
 exit;
 }
+
+/* FETCH ENTRY */
 
 $result = $conn->query("
 SELECT *
@@ -20,12 +22,12 @@ FROM rig_daily_log
 WHERE id='$id'
 ");
 
-if($result->num_rows == 0){
+if($result->num_rows==0){
 echo "Entry not found";
 exit;
 }
 
-$row = $result->fetch_assoc();
+$row=$result->fetch_assoc();
 ?>
 
 <!DOCTYPE html>
@@ -160,7 +162,7 @@ margin-bottom:20px;
 </div>
 
 
-<!-- HOURS VALIDATION BOX -->
+<!-- HOURS CALCULATION -->
 
 <div class="alert alert-info mt-3" id="hoursInfo">
 
@@ -170,7 +172,7 @@ Remaining Hours: <b id="remainingHours">24</b>
 </div>
 
 
-<button type="submit" class="btn btn-success">Update Entry</button>
+<button type="submit" id="updateBtn" class="btn btn-success">Update Entry</button>
 
 <a href="report_daily.php" class="btn btn-secondary">Cancel</a>
 
@@ -183,53 +185,56 @@ Remaining Hours: <b id="remainingHours">24</b>
 
 <script>
 
-/* HOURS CALCULATION */
+/* WAIT UNTIL PAGE LOADS */
+
+document.addEventListener("DOMContentLoaded", function(){
 
 function calculateHours(){
 
-let operating = parseFloat(document.querySelector("[name='operating']").value) || 0;
-let standby = parseFloat(document.querySelector("[name='standby']").value) || 0;
-let breakdown = parseFloat(document.querySelector("[name='breakdown']").value) || 0;
-let ilm = parseFloat(document.querySelector("[name='ilm']").value) || 0;
-let zero = parseFloat(document.querySelector("[name='zero']").value) || 0;
+let operating = parseFloat(document.querySelector('[name="operating"]').value) || 0;
+let standby = parseFloat(document.querySelector('[name="standby"]').value) || 0;
+let breakdown = parseFloat(document.querySelector('[name="breakdown"]').value) || 0;
+let ilm = parseFloat(document.querySelector('[name="ilm"]').value) || 0;
+let zero = parseFloat(document.querySelector('[name="zero"]').value) || 0;
 
 let total = operating + standby + breakdown + ilm + zero;
-
 let remaining = 24 - total;
 
 document.getElementById("totalHours").innerText = total.toFixed(2);
 document.getElementById("remainingHours").innerText = remaining.toFixed(2);
 
 let box = document.getElementById("hoursInfo");
+let button = document.getElementById("updateBtn");
 
 if(total > 24){
 
-box.className = "alert alert-danger";
+box.className="alert alert-danger";
+box.innerHTML="⚠ Total Hours: <b>"+total.toFixed(2)+"</b> — Exceeds 24 hours!";
+button.disabled=true;
 
-box.innerHTML = "⚠ Total Hours: <b>"+total.toFixed(2)+"</b> — Exceeds 24 hours!";
+}else{
 
-}
-else{
-
-box.className = "alert alert-info";
-
-box.innerHTML = "Total Hours: <b>"+total.toFixed(2)+"</b> | Remaining Hours: <b>"+remaining.toFixed(2)+"</b>";
-
-}
+box.className="alert alert-info";
+box.innerHTML="Total Hours: <b>"+total.toFixed(2)+"</b> | Remaining Hours: <b>"+remaining.toFixed(2)+"</b>";
+button.disabled=false;
 
 }
 
-/* RUN ON INPUT CHANGE */
+}
 
-document.querySelectorAll("input[type='number']").forEach(function(el){
+/* ADD INPUT LISTENERS */
 
-el.addEventListener("input", calculateHours);
+document.querySelector('[name="operating"]').addEventListener("input",calculateHours);
+document.querySelector('[name="standby"]').addEventListener("input",calculateHours);
+document.querySelector('[name="breakdown"]').addEventListener("input",calculateHours);
+document.querySelector('[name="ilm"]').addEventListener("input",calculateHours);
+document.querySelector('[name="zero"]').addEventListener("input",calculateHours);
 
-});
-
-/* RUN ON PAGE LOAD */
+/* INITIAL CALCULATION */
 
 calculateHours();
+
+});
 
 </script>
 
