@@ -35,6 +35,7 @@ $whereSQL = count($where) ? "WHERE ".implode(" AND ",$where) : "";
 
 $result=$conn->query("
 SELECT
+id,
 date,
 rig,
 operating_hours,
