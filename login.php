@@ -2,32 +2,29 @@
 session_start();
 include "config.php";
 
-if(isset($_POST['login'])){
+$username = $_POST['username'];
+$password = md5($_POST['password']);
 
-$username=$_POST['username'];
-$password=md5($_POST['password']);
-
-$q=$conn->query("
+$result = $conn->query("
 SELECT * FROM users
 WHERE username='$username'
 AND password='$password'
 ");
 
-if($q->num_rows==1){
+if($result->num_rows > 0){
 
-$user=$q->fetch_assoc();
+$user = $result->fetch_assoc();
 
-$_SESSION['user_id']=$user['id'];
-$_SESSION['username']=$user['username'];
+$_SESSION['user_id'] = $user['id'];
+$_SESSION['username'] = $user['username'];
+$_SESSION['role'] = $user['role'];   // VERY IMPORTANT
 
 header("Location: dashboard.php");
 exit;
 
 }else{
 
-$error="Invalid login";
-
-}
+echo "Invalid Login";
 
 }
 ?>
