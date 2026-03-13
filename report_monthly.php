@@ -87,6 +87,7 @@ text-align:center;
 <a href="dashboard.php" class="btn btn-secondary btn-sm">Dashboard</a>
 <a href="report_daily.php" class="btn btn-primary btn-sm">Daily</a>
 <a href="report_weekly.php" class="btn btn-primary btn-sm">Weekly</a>
+<a href="logout.php" class="btn btn-danger btn-sm">Logout</a>
 
 <hr>
 
