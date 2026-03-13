@@ -5,7 +5,7 @@ include "config.php";
 
 use Dompdf\Dompdf;
 
-/* LOGO */
+/* ---------------- LOGO ---------------- */
 
 $logo = __DIR__."/logo.png";
 $logo_base64="";
@@ -14,16 +14,16 @@ if(file_exists($logo)){
 $logo_base64="data:image/png;base64,".base64_encode(file_get_contents($logo));
 }
 
-/* REPORT INFO */
+/* ---------------- REPORT INFO ---------------- */
 
 $report_date=date("d-M-Y");
 $report_time=date("H:i:s");
 
-/* FILTER */
+/* ---------------- FILTER ---------------- */
 
-$monday=$_POST['monday'];
-$sunday=$_POST['sunday'];
-$rig=$_POST['rig'];
+$monday = $_POST['monday'] ?? "";
+$sunday = $_POST['sunday'] ?? "";
+$rig = $conn->real_escape_string($_POST['rig'] ?? "");
 
 $where="WHERE date BETWEEN '$monday' AND '$sunday'";
 
@@ -31,7 +31,7 @@ if($rig!=""){
 $where.=" AND rig='$rig'";
 }
 
-/* SUMMARY */
+/* ---------------- SUMMARY ---------------- */
 
 $summary=$conn->query("
 SELECT
@@ -52,10 +52,17 @@ $ilm=$summary['ilm']??0;
 $zero=$summary['zero_rate']??0;
 $rigs=$summary['rigs']??0;
 
-$efficiency=($rigs>0)?($operating/($rigs*24*7))*100:0;
-$efficiency=round($efficiency,1);
+/* ---------------- FLEET EFFICIENCY ---------------- */
 
-/* TABLE DATA */
+$total_available_hours = $rigs * 24 * 7;
+
+$efficiency = ($total_available_hours>0)
+? ($operating / $total_available_hours)*100
+: 0;
+
+$efficiency = round($efficiency,1);
+
+/* ---------------- TABLE DATA ---------------- */
 
 $result=$conn->query("
 SELECT *
@@ -64,7 +71,7 @@ $where
 ORDER BY date DESC
 ");
 
-/* HTML */
+/* ---------------- HTML ---------------- */
 
 $html="
 
@@ -105,6 +112,13 @@ padding:8px;
 border:1px solid #ccc;
 padding:6px;
 text-align:center;
+}
+
+.footer{
+margin-top:30px;
+font-size:11px;
+text-align:center;
+color:#777;
 }
 
 </style>
@@ -178,7 +192,7 @@ text-align:center;
 </tr>
 ";
 
-/* TABLE LOOP */
+/* ---------------- TABLE LOOP ---------------- */
 
 while($row=$result->fetch_assoc()){
 
@@ -199,9 +213,17 @@ $html.="
 ";
 }
 
-$html.="</table>";
+$html.="</table>
 
-/* PDF */
+<div class='footer'>
+
+KRISS DRILLING PVT. LTD. — Rig Monitoring System
+
+</div>
+
+";
+
+/* ---------------- GENERATE PDF ---------------- */
 
 $dompdf=new Dompdf();
 
