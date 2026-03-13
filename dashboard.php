@@ -265,6 +265,10 @@ KRISS DRILLING PVT. LTD.
 <a href="report_monthly.php">Monthly Report</a>
 <a href="alerts.php">Alerts</a>
 
+<?php if($_SESSION['role']=='admin'){ ?>
+<a href="create_user.php" class="btn btn-warning">Create User</a>
+<?php } ?>
+
 </div>
 
 
