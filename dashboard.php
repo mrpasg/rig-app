@@ -4,7 +4,6 @@ ini_set('display_errors',1);
 
 include "auth.php";
 include "config.php";
-?>
 
 /* ---------------- FILTER ---------------- */
 
@@ -165,7 +164,6 @@ while($rigPerf && $row=$rigPerf->fetch_assoc()){
 $rigNames[]=$row['rig'];
 $rigHours[]=$row['hours'];
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -396,11 +394,11 @@ type:'line',
 data:{
 labels: <?=json_encode($dates)?>,
 datasets:[
-{label:'Operating',data:<?=json_encode($oper)?>,borderColor:'#22c55e'},
-{label:'Standby',data:<?=json_encode($standby)?>,borderColor:'#facc15'},
-{label:'Breakdown',data:<?=json_encode($breakdown)?>,borderColor:'#ef4444'},
-{label:'ILM',data:<?=json_encode($ilm)?>,borderColor:'#9333ea'},
-{label:'Zero Rate',data:<?=json_encode($zero)?>,borderColor:'#000'}
+{label:'Operating',data:<?=json_encode($oper)?>,borderColor:'#22c55e',tension:0.3},
+{label:'Standby',data:<?=json_encode($standby)?>,borderColor:'#facc15',tension:0.3},
+{label:'Breakdown',data:<?=json_encode($breakdown)?>,borderColor:'#ef4444',tension:0.3},
+{label:'ILM',data:<?=json_encode($ilm)?>,borderColor:'#9333ea',tension:0.3},
+{label:'Zero Rate',data:<?=json_encode($zero)?>,borderColor:'#000',tension:0.3}
 ]
 }
 });
