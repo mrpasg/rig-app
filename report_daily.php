@@ -35,6 +35,7 @@ $whereSQL = count($where) ? "WHERE ".implode(" AND ",$where) : "";
 
 $result=$conn->query("
 SELECT
+id,
 date,
 rig,
 operating_hours,
@@ -190,6 +191,7 @@ align-items:center;
 <th>Breakdown</th>
 <th>ILM</th>
 <th>Zero Rate</th>
+<th>Edit</th>
 </tr>
 
 </thead>
@@ -208,6 +210,9 @@ echo "<tr>
 <td>{$row['breakdown_hours']}</td>
 <td>{$row['ilm_hours']}</td>
 <td style='color:red'>{$row['zero_rate_hours']}</td>
+<td>
+<a href='edit_entry.php?id={$row['id']}' class='btn btn-warning btn-sm'>Edit</a>
+</td>
 </tr>";
 
 }
