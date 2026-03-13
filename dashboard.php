@@ -244,11 +244,14 @@ margin:5px 0;
 
 <body>
 
-<div class="topbar">
+<div class="topbar" style="justify-content:space-between;">
 
+<div style="display:flex;align-items:center;">
 <img src="logo.png" height="35" style="margin-right:10px">
-
 KRISS DRILLING PVT. LTD.
+</div>
+
+<a href="logout.php" class="btn btn-danger btn-sm">Logout</a>
 
 </div>
 
