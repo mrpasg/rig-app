@@ -70,7 +70,8 @@ echo "<div style='color:green'>User created successfully</div>";
 
 <select name="role" class="form-control">
 
-<option value="user">User</option>
+<option value="viewer">Viewer</option>
+<option value="supervisor">Supervisor</option>
 <option value="admin">Admin</option>
 
 </select>

@@ -2,6 +2,11 @@
 include "auth.php";
 include "config.php";
 
+if($_SESSION['role']!="admin" && $_SESSION['role']!="supervisor"){
+echo "<h3 style='color:red'>Access Denied</h3>";
+exit;
+}
+
 /* -------- FILTERS -------- */
 
 $rig = $_GET['rig'] ?? "";
