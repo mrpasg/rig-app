@@ -264,10 +264,12 @@ KRISS DRILLING PVT. LTD.
 <a href="report_weekly.php">Weekly Report</a>
 <a href="report_monthly.php">Monthly Report</a>
 <a href="alerts.php">Alerts</a>
-</div><?php if(isset($_SESSION['role']) && $_SESSION['role']=='admin'){ ?>
+
+<?php if(isset($_SESSION['role']) && $_SESSION['role']=='admin'){ ?>
 <a href="create_user.php">Create User</a>
 <?php } ?>
 
+</div>
 
 <div class="main">
 
