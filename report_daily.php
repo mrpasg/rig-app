@@ -2,10 +2,6 @@
 include "auth.php";
 include "config.php";
 
-if($_SESSION['role']!="admin" && $_SESSION['role']!="supervisor"){
-echo "<h3 style='color:red'>Access Denied</h3>";
-exit;
-}
 
 /* -------- FILTERS -------- */
 
@@ -216,9 +212,10 @@ echo "<tr>
 <td>{$row['ilm_hours']}</td>
 <td style='color:red'>{$row['zero_rate_hours']}</td>
 <td>
-<a href='edit_entry.php?id={$row['id']}' class='btn btn-warning btn-sm'>Edit</a>
+<?php if($_SESSION['role']=="admin" || $_SESSION['role']=="supervisor"){ ?>
+<a href='edit_entry.php?id=<?=$row['id']?>' class='btn btn-warning btn-sm'>Edit</a>
+<?php } ?>
 </td>
-</tr>";
 
 }
 
