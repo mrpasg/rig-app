@@ -265,8 +265,8 @@ KRISS DRILLING PVT. LTD.
 <a href="report_monthly.php">Monthly Report</a>
 <a href="alerts.php">Alerts</a>
 
-<?php if($_SESSION['role']=="admin" || $_SESSION['role']=="supervisor"){ ?>
-<a href="add_entry.php" class="btn btn-success">Add Entry</a>
+<?php if($_SESSION['role']=="admin"){ ?>
+<a href="create_user.php">User Management</a>
 <?php } ?>
 
 </div>
@@ -277,7 +277,10 @@ KRISS DRILLING PVT. LTD.
 
 <div class="mb-3">
 
+<?php if($_SESSION['role']=="admin" || $_SESSION['role']=="supervisor"){ ?>
 <a href="add_entry.php" class="btn btn-success">Add Entry</a>
+<?php } ?>
+
 <a href="report_daily.php" class="btn btn-primary">Daily Report</a>
 <a href="report_weekly.php" class="btn btn-primary">Weekly Report</a>
 <a href="report_monthly.php" class="btn btn-primary">Monthly Report</a>
