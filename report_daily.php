@@ -203,19 +203,27 @@ align-items:center;
 
 while($row=$result->fetch_assoc()){
 
-echo "<tr>
-<td>{$row['date']}</td>
-<td>{$row['rig']}</td>
-<td>{$row['operating_hours']}</td>
-<td>{$row['standby_hours']}</td>
-<td>{$row['breakdown_hours']}</td>
-<td>{$row['ilm_hours']}</td>
-<td style='color:red'>{$row['zero_rate_hours']}</td>
-<td>
-<?php if($_SESSION['role']=="admin" || $_SESSION['role']=="supervisor"){ ?>
-<a href='edit_entry.php?id=<?=$row['id']?>' class='btn btn-warning btn-sm'>Edit</a>
-<?php } ?>
-</td>
+echo "<tr>";
+
+echo "<td>{$row['date']}</td>";
+echo "<td>{$row['rig']}</td>";
+echo "<td>{$row['operating_hours']}</td>";
+echo "<td>{$row['standby_hours']}</td>";
+echo "<td>{$row['breakdown_hours']}</td>";
+echo "<td>{$row['ilm_hours']}</td>";
+echo "<td style='color:red'>{$row['zero_rate_hours']}</td>";
+
+echo "<td>";
+
+if($_SESSION['role']=="admin" || $_SESSION['role']=="supervisor"){
+echo "<a href='edit_entry.php?id=".$row['id']."' class='btn btn-warning btn-sm'>Edit</a>";
+}else{
+echo "-";
+}
+
+echo "</td>";
+
+echo "</tr>";
 
 }
 
