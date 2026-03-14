@@ -2,11 +2,9 @@
 session_start();
 include "config.php";
 
-$error = "";
-
 if(isset($_POST['login'])){
 
-$username = $conn->real_escape_string($_POST['username']);
+$username = $_POST['username'];
 $password = md5($_POST['password']);
 
 $result = $conn->query("
@@ -27,9 +25,7 @@ header("Location: dashboard.php");
 exit;
 
 }else{
-
-$error = "Invalid username or password";
-
+$error="Invalid username or password";
 }
 
 }
@@ -40,35 +36,139 @@ $error = "Invalid username or password";
 
 <head>
 
-<title>Login</title>
+<title>Rig Monitoring System</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
+<style>
+
+body{
+
+height:100vh;
+margin:0;
+font-family:Segoe UI;
+
+background-image:url('oil_bg.jpg');
+background-size:cover;
+background-position:center;
+background-repeat:no-repeat;
+
+display:flex;
+align-items:center;
+justify-content:center;
+
+}
+
+/* dark overlay */
+
+body:before{
+content:"";
+position:absolute;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.65);
+}
+
+/* login card */
+
+.login-card{
+
+position:relative;
+width:380px;
+background:white;
+padding:35px;
+border-radius:12px;
+box-shadow:0 10px 25px rgba(0,0,0,0.4);
+
+}
+
+/* logo */
+
+.logo{
+
+text-align:center;
+margin-bottom:15px;
+
+}
+
+.logo img{
+
+height:60px;
+
+}
+
+.system-title{
+
+text-align:center;
+font-weight:600;
+margin-bottom:20px;
+color:#0b3d6d;
+
+}
+
+.footer{
+
+text-align:center;
+margin-top:15px;
+font-size:12px;
+color:#888;
+
+}
+
+</style>
+
 </head>
 
-<body class="bg-light">
+<body>
 
-<div class="container mt-5" style="max-width:400px">
+<div class="login-card">
 
-<h3 class="mb-3">Rig Monitoring Login</h3>
+<div class="logo">
+
+<img src="logo.png">
+
+</div>
+
+<div class="system-title">
+
+Rig Monitoring System
+
+</div>
 
 <form method="POST">
 
-<input type="text" name="username" class="form-control mb-2" placeholder="Username" required>
+<input type="text" name="username" class="form-control mb-3" placeholder="Username" required>
 
 <input type="password" name="password" class="form-control mb-3" placeholder="Password" required>
 
-<button type="submit" name="login" class="btn btn-primary w-100">Login</button>
+<button name="login" class="btn btn-primary w-100">
 
-<?php
-if($error!=""){
-echo "<p class='text-danger mt-2'>$error</p>";
-}
-?>
+Login
+
+</button>
+
+<?php if(isset($error)){ ?>
+
+<div class="text-danger mt-2 text-center">
+
+<?=$error?>
+
+</div>
+
+<?php } ?>
 
 </form>
+
+<div class="footer">
+
+KRISS DRILLING PVT. LTD.
+
+</div>
 
 </div>
 
 </body>
+
 </html>
