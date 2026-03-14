@@ -266,7 +266,7 @@ KRISS DRILLING PVT. LTD.
 <a href="alerts.php">Alerts</a>
 
 <?php if(isset($_SESSION['role']) && $_SESSION['role']=='admin'){ ?>
-<a href="create_user.php">Create User</a>
+<a href="create_user.php">User Management</a>
 <?php } ?>
 
 </div>
